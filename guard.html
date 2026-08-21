@@ -32,11 +32,20 @@
         <!-- شبكة الأشهر -->
         <div class="grid grid-cols-4 sm:grid-cols-6 gap-1.5 pt-1" id="monthGrid"></div>
 
-        <!-- صندوق ذمة عبد الله (كاش باليد فقط) -->
-        <div class="bg-slate-950 p-3 rounded-xl border border-sky-500/40 text-right space-y-1 text-xs">
-            <p class="text-sky-400 font-bold">💵 ذمة عبد الله (كاش باليد فقط):</p>
-            <div class="text-white text-base font-black" id="guardCashBalance">0 د.أ</div>
-            <p class="text-[10px] text-slate-400">(الكاش المستلم من الزباين - المصاريف المسجلة)</p>
+        <!-- صندوق تفصيل ذمة عبد الله والمجاميع -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-sky-500/40 text-right space-y-1.5 text-xs">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                <span class="text-sky-400 font-bold">💵 إجمالي ما استلمه كاش باليد:</span>
+                <span id="totalCollectedCash" class="text-emerald-400 font-black text-sm">0 د.أ</span>
+            </div>
+            <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                <span class="text-red-400">💸 إجمالي المصاريف المسجلة:</span>
+                <span id="totalExpensesBox" class="text-red-400 font-bold">0 د.أ</span>
+            </div>
+            <div class="flex justify-between items-center pt-1">
+                <span class="text-amber-400 font-bold">📌 صافي الذمة المتبقية بذمته:</span>
+                <span id="guardCashBalance" class="text-white text-base font-black">0 د.أ</span>
+            </div>
         </div>
     </div>
 
@@ -152,13 +161,14 @@
 
             filtered.sort((a, b) => new Date(a.dateCreated) - new Date(b.dateCreated));
 
-            // ذمة عبد الله الحقيقية تعتمد فقط على الكاش القبضه هو
             let chaletCollectedCash = filtered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
             let totalExpenses = allExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
             
             let netGuardCash = chaletCollectedCash - totalExpenses;
             if(netGuardCash < 0) netGuardCash = 0;
 
+            document.getElementById('totalCollectedCash').innerText = chaletCollectedCash + ' د.أ';
+            document.getElementById('totalExpensesBox').innerText = totalExpenses + ' د.أ';
             document.getElementById('guardCashBalance').innerText = netGuardCash + ' د.أ';
 
             if (filtered.length === 0) {
@@ -169,12 +179,11 @@
             filtered.forEach(b => {
                 const total = parseFloat(b.totalPrice) || 0;
                 const paid = parseFloat(b.paidAmount) || 0;
-                const baseRem = total - paid;
                 const collectedByGuard = parseFloat(b.guardCollected) || 0;
                 const cliqCollected = parseFloat(b.cliqCollected) || 0;
                 const ownerCollected = parseFloat(b.ownerCollected) || 0;
                 
-                const actualRemaining = baseRem - collectedByGuard - cliqCollected - ownerCollected;
+                const actualRemaining = total - (paid + collectedByGuard + cliqCollected + ownerCollected);
                 const phone = b.phone || '';
 
                 container.innerHTML += `
@@ -196,18 +205,18 @@
                         </div>
 
                         <div class="bg-slate-900 p-3 rounded-xl border border-amber-600/30 space-y-2 pt-2">
-                            <div class="text-[11px] text-amber-400 font-bold">تسجيل الدفعة حسب طريقة الدفع:</div>
+                            <div class="text-[11px] text-amber-400 font-bold">تسجيل أو تعديل طريقة الدفع (أو نقل المبلغ بين الطرق):</div>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <input type="number" id="amount_${b.id}" placeholder="المبلغ (د.أ)" class="bg-slate-950 border border-slate-700 rounded-xl p-2 text-white text-xs font-bold">
                                 <select id="method_${b.id}" onchange="onMethodChange('${b.id}')" class="bg-slate-950 border border-amber-500/50 rounded-xl p-2 text-amber-300 font-bold text-xs">
                                     <option value="guard">محاسبة عبد الله (كاش)</option>
-                                    <option value="cliq">تحويل كليك (CliQ)</option>
-                                    <option value="owner">دفعه لصاحب الشاليه</option>
+                                    <option value="cliq">تحويل كليك (CliQ) - الزبون حوله</option>
+                                    <option value="owner">دفعه لصاحب الشاليه مباشرة</option>
                                 </select>
                             </div>
                             <div class="flex gap-2">
                                 <button onclick="updatePayment('${b.id}', 'add')" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-xl shadow transition">➕ إضافة دفعة جديدة</button>
-                                <button onclick="updatePayment('${b.id}', 'set')" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 rounded-xl shadow transition">✏️ تعديل القيمة لطريقة الدفع</button>
+                                <button onclick="updatePayment('${b.id}', 'set')" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 rounded-xl shadow transition">✏️ تعديل القيمة وتثبيتها</button>
                             </div>
                         </div>
                     </div>
@@ -230,7 +239,6 @@
             }
         }
 
-        // دالة مساعدة لتعبئة الخانة بالقيمة الحالية حسب الطريقة المختارة
         window.onMethodChange = function(id) {
             let b = allBookings.find(x => x.id === id);
             let method = document.getElementById(`method_${id}`).value;
@@ -247,32 +255,45 @@
             if (isNaN(amount) || amount < 0) return alert('الرجاء إدخال مبلغ صحيح!');
 
             let b = allBookings.find(x => x.id === id);
-            let updateData = {};
+            let totalPrice = parseFloat(b.totalPrice) || 0;
+            let paid = parseFloat(b.paidAmount) || 0;
             
-            if (method === 'guard') {
-                let currentVal = parseFloat(b.guardCollected) || 0;
-                updateData.guardCollected = mode === 'add' ? currentVal + amount : amount;
-            } else if (method === 'cliq') {
-                let currentVal = parseFloat(b.cliqCollected) || 0;
-                updateData.cliqCollected = mode === 'add' ? currentVal + amount : amount;
-            } else if (method === 'owner') {
-                let currentVal = parseFloat(b.ownerCollected) || 0;
-                updateData.ownerCollected = mode === 'add' ? currentVal + amount : amount;
+            let g = parseFloat(b.guardCollected) || 0;
+            let c = parseFloat(b.cliqCollected) || 0;
+            let o = parseFloat(b.ownerCollected) || 0;
+
+            let newG = g, newC = c, newO = o;
+
+            if (mode === 'set') {
+                newG = (method === 'guard') ? amount : 0;
+                newC = (method === 'cliq') ? amount : 0;
+                newO = (method === 'owner') ? amount : 0;
+            } else if (mode === 'add') {
+                if (method === 'guard') newG += amount;
+                else if (method === 'cliq') newC += amount;
+                else if (method === 'owner') newO += amount;
             }
 
-            await updateDoc(doc(db, "bookings", id), updateData);
-            alert('✅ تم تسجيل الحساب في طريقه الصحيح بدقة!');
-            loadGuardData();
-        }
+            let totalPaidSoFar = paid + newG + newC + newO;
+            if (totalPaidSoFar > totalPrice) {
+                return alert(`❌ خطأ: إجمالي المبالغ المدفوعة (${totalPaidSoFar} د.أ) يتجاوز القيمة الكلية للحجز (${totalPrice} د.أ)! لا يمكن إتمام العملية.`);
+            }
 
-        window.saveExpense = async function'() { // تم إصلاح الاقواس
-            // ...
+            let updateData = {
+                guardCollected: newG,
+                cliqCollected: newC,
+                ownerCollected: newO
+            };
+
+            await updateDoc(doc(db, "bookings", id), updateData);
+            alert('✅ تم التحقق وتثبيت الحساب بدقة!');
+            loadGuardData();
         }
 
         window.saveExpense = async function() {
             let note = document.getElementById('expenseNote').value.trim();
             let amount = parseFloat(document.getElementById('expenseAmount').value);
-            if (!note || isNaN(amount) || amount <= 0) return alert('أدخل بيانات صحيحة');
+            if (!note || isNaN(amount) || amount <= 0) return alert('أدخل بيانات صحيحة للمصروف');
             await setDoc(doc(db, "expenses", String(Date.now())), { note, amount, date: new Date().toISOString() });
             document.getElementById('expenseNote').value = '';
             document.getElementById('expenseAmount').value = '';
