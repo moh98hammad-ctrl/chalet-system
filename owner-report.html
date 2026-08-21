@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>التقرير المالي - صاحب الشاليه</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- مكتبة تحويل HTML إلى صورة -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { font-family: Tahoma, sans-serif; background-color: #080c14; color: #f8fafc; }
         .gold-card { background: #121824; border: 1px solid rgba(217, 119, 6, 0.4); }
@@ -13,17 +15,51 @@
 </head>
 <body class="p-4 md:p-6 max-w-xl mx-auto min-h-screen space-y-4">
 
-    <div class="gold-card p-5 rounded-2xl text-center space-y-2 shadow-xl">
-        <h1 class="text-lg font-black gold-text">📊 التقرير المالي الشامل لصاحب الشاليه</h1>
-        <p class="text-xs text-slate-400">شفافية كاملة للإيرادات والمصاريف وصافي الأرباح</p>
-        
-        <div class="flex gap-2 justify-center pt-2">
-            <button onclick="setChalet('شاليه بلقيس')" id="btnBalqis" class="px-4 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow">شاليه بلقيس</button>
-            <button onclick="setChalet('شاليه طلة بحر')" id="btnSea" class="px-4 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700">طلة بحر</button>
+    <!-- العنصر الذي سيتم تحويله إلى صورة -->
+    <div id="captureArea" class="space-y-4">
+        <div class="gold-card p-5 rounded-2xl text-center space-y-2 shadow-xl">
+            <h1 class="text-lg font-black gold-text">📊 التقرير المالي الشامل لصاحب الشاليه</h1>
+            <p class="text-xs text-slate-400">شفافية كاملة للإيرادات والمصاريف وصافي الأرباح</p>
+            
+            <div class="flex gap-2 justify-center pt-2">
+                <span id="chaletTitleDisplay" class="px-4 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow">شاليه بلقيس</span>
+            </div>
+        </div>
+
+        <!-- ملخص الحسابات -->
+        <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl">
+            <h2 class="font-bold gold-text text-sm border-b border-amber-600/30 pb-2">💰 الخلاصة المالية</h2>
+            <div class="grid grid-cols-2 gap-2 text-slate-300">
+                <p>إجمالي المدخولات: <b id="totalIncome" class="text-white">0 د.أ</b></p>
+                <p>إجمالي المصاريف: <b id="totalExpenses" class="text-red-400">0 د.أ</b></p>
+            </div>
+            <div class="border-t border-amber-600/20 pt-2 space-y-1.5">
+                <p class="text-amber-400 font-bold">صافي الربح الكلي: <span id="netProfit" class="text-white">0 د.أ</span></p>
+                <p class="text-emerald-400 font-bold">حصة الإدارة (25%): <span id="myShare" class="text-white">0 د.أ</span></p>
+                <p class="text-sky-400 font-bold">حصة صاحب الشاليه (75%): <span id="ownerShare" class="text-white">0 د.أ</span></p>
+                <p class="text-purple-400 font-bold">ما وصل صاحب الشاليه مباشرة: <span id="ownerCollectedTotal" class="text-white">0 د.أ</span></p>
+                <p class="text-red-400 font-extrabold text-sm border-t border-amber-600/20 pt-1.5">المتبقي لصاحب الشاليه: <span id="ownerRemaining" class="text-white">0 د.أ</span></p>
+            </div>
+        </div>
+
+        <!-- جدول الحجوزات المدفوعة لصاحب الشاليه مباشرة -->
+        <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
+            <h2 class="font-bold gold-text text-sm border-b border-amber-600/30 pb-2">👑 حجوزات مسددة مباشرة لصاحب الشاليه</h2>
+            <div id="ownerPaymentsTable" class="space-y-1.5">
+                <span class="text-slate-500 text-[11px]">جاري التحميل...</span>
+            </div>
+        </div>
+
+        <!-- جدول المصاريف التفصيلي -->
+        <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
+            <h2 class="font-bold gold-text text-sm border-b border-amber-600/30 pb-2">📝 تفاصيل المصاريف المسجلة</h2>
+            <div id="expensesTable" class="space-y-1.5">
+                <span class="text-slate-500 text-[11px]">جاري تحميل المصاريف...</span>
+            </div>
         </div>
     </div>
 
-    <!-- خانة إضافة المصاريف الجديدة -->
+    <!-- أزرار التحكم والعمليات (خارج نطاق الصورة) -->
     <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl">
         <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 إضافة مصروف جديد</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -33,47 +69,19 @@
         <button onclick="saveExpense()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">
             💾 حفظ المصروف في السحابة
         </button>
-    </div>
 
-    <!-- ملخص الحسابات -->
-    <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl">
-        <h2 class="font-bold gold-text text-sm border-b border-amber-600/30 pb-2">💰 الخلاصة المالية</h2>
-        <div class="grid grid-cols-2 gap-2 text-slate-300">
-            <p>إجمالي المدخولات: <b id="totalIncome" class="text-white">0 د.أ</b></p>
-            <p>إجمالي المصاريف: <b id="totalExpenses" class="text-red-400">0 د.أ</b></p>
-        </div>
-        <div class="border-t border-amber-600/20 pt-2 space-y-1.5">
-            <p class="text-amber-400 font-bold">صافي الربح الكلي: <span id="netProfit" class="text-white">0 د.أ</span></p>
-            <p class="text-emerald-400 font-bold">حصة الإدارة (25%): <span id="myShare" class="text-white">0 د.أ</span></p>
-            <p class="text-sky-400 font-bold">حصة صاحب الشاليه (75%): <span id="ownerShare" class="text-white">0 د.أ</span></p>
-            <p class="text-purple-400 font-bold">ما وصل صاحب الشاليه مباشرة: <span id="ownerCollectedTotal" class="text-white">0 د.أ</span></p>
-            <p class="text-red-400 font-extrabold text-sm border-t border-amber-600/20 pt-1.5">المتبقي لصاحب الشاليه: <span id="ownerRemaining" class="text-white">0 د.أ</span></p>
+        <div class="flex gap-2 justify-center pt-2 border-t border-amber-600/20">
+            <button onclick="setChalet('شاليه بلقيس')" id="btnBalqis" class="px-3 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow">شاليه بلقيس</button>
+            <button onclick="setChalet('شاليه طلة بحر')" id="btnSea" class="px-3 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700">طلة بحر</button>
         </div>
 
-        <!-- أزرار العمليات وتنسيق الواتساب -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
             <button onclick="settleOwnerAccount()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">
                 ✅ تصفية الحساب
             </button>
-            <button onclick="copyReportLink()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow flex items-center justify-center gap-1">
-                🔗 نسخ رابط التقرير للمالك
+            <button onclick="exportReportAsImage()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow flex items-center justify-center gap-1">
+                📸 حفظ التقرير كصورة
             </button>
-        </div>
-    </div>
-
-    <!-- جدول الحجوزات المدفوعة لصاحب الشاليه مباشرة -->
-    <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
-        <h2 class="font-bold gold-text text-sm border-b border-amber-600/30 pb-2">👑 حجوزات مسددة مباشرة لصاحب الشاليه</h2>
-        <div id="ownerPaymentsTable" class="space-y-1.5">
-            <span class="text-slate-500 text-[11px]">جاري التحميل...</span>
-        </div>
-    </div>
-
-    <!-- جدول المصاريف التفصيلي -->
-    <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
-        <h2 class="font-bold gold-text text-sm border-b border-amber-600/30 pb-2">📝 تفاصيل المصاريف المسجلة</h2>
-        <div id="expensesTable" class="space-y-1.5">
-            <span class="text-slate-500 text-[11px]">جاري تحميل المصاريف...</span>
         </div>
     </div>
 
@@ -98,8 +106,9 @@
 
         window.setChalet = function(chalet) {
             activeChalet = chalet;
-            document.getElementById('btnBalqis').className = chalet === 'شاليه بلقيس' ? "px-4 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-4 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
-            document.getElementById('btnSea').className = chalet === 'شاليه طلة بحر' ? "px-4 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-4 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
+            document.getElementById('chaletTitleDisplay').innerText = chalet;
+            document.getElementById('btnBalqis').className = chalet === 'شاليه بلقيس' ? "px-3 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-3 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
+            document.getElementById('btnSea').className = chalet === 'شاليه طلة بحر' ? "px-3 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-3 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
             calculateReport();
         }
 
@@ -166,15 +175,15 @@
             }
         }
 
-        window.copyReportLink = function() {
-            // استبدل هذا الرابط برابط صفحة owner-report.html المرفوعة على GitHub Pages الخاصة بك
-            let reportUrl = window.location.href.split('?')[0]; 
-            let message = `مرحباً بك 👑\nإليك رابط التقرير المالي الشامل والمحدث لشاليه (${activeChalet}):\n🔗 ${reportUrl}\n\nيمكنك من خلاله الاطلاع على كافة المدخولات، المصاريف، وحساباتك بدقة وشفافية تامة ✨`;
-
-            navigator.clipboard.writeText(message).then(() => {
-                alert('✅ تم نسخ رابط التقرير المالي مع رسالة جاهزة لإرسالها لصاحب الشاليه عبر الواتساب!');
+        window.exportReportAsImage = function() {
+            const element = document.getElementById('captureArea');
+            html2canvas(element, { scale: 2, backgroundColor: '#080c14' }).then(canvas => {
+                let link = document.createElement('a');
+                link.download = `التقرير_المالي_${activeChalet}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
             }).catch(err => {
-                alert('❌ فشل نسخ الرابط');
+                alert('❌ حدث خطأ أثناء توليد الصورة');
             });
         }
 
