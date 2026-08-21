@@ -246,7 +246,7 @@
                 
                 let notesSection = b.notes ? `<p class="md:col-span-2 text-amber-300/90 bg-slate-950 p-2 rounded-xl border border-amber-600/20">📝 ملاحظات: ${b.notes}</p>` : '';
 
-                // رابط الفاتورة الملكية مع التشفير الشامل لكي لا يقصه الواتساب أبداً
+                // رابط الفاتورة الملكية مع التشفير الشامل (encodeURIComponent) لمنع انقطاع الرابط بالواتساب
                 let receiptUrl = `https://moh98hammad-ctrl.github.io/chalet-system/receipt.html?chalet=${encodeURIComponent(b.chalet)}&name=${encodeURIComponent(b.guestName)}&phone=${encodeURIComponent(phoneText)}&type=${encodeURIComponent('حجز_شاليه')}&in=${encodeURIComponent(checkInText)}&out=${encodeURIComponent(checkOutText)}&guests=10&total=${b.totalPrice}&paid=${b.paidAmount}&rem=${rem}`;
 
                 container.innerHTML += `
