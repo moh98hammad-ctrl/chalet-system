@@ -19,7 +19,7 @@
         <!-- أزرار اختيار الشاليه -->
         <div class="flex gap-2 justify-center pt-1">
             <button onclick="switchChalet('شاليه بلقيس')" id="btnBalqis" class="px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow">👑 شاليه بلقيس</button>
-            <button onclick="switchChalet('شاليه طلّة بحر')" id="btnSea" class="px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700">🌊 شاليه طلّة بحر</button>
+            <button onclick="switchChalet('شاليه طلة بحر')" id="btnSea" class="px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700">🌊 شاليه طلة بحر</button>
         </div>
 
         <!-- واجهة اختيار السنة والشهر -->
@@ -92,7 +92,7 @@
         window.switchChalet = function(chalet) {
             activeChalet = chalet;
             document.getElementById('btnBalqis').className = chalet === 'شاليه بلقيس' ? "px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
-            document.getElementById('btnSea').className = chalet === 'شاليه طلّة بحر' ? "px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
+            document.getElementById('btnSea').className = chalet === 'شاليه طلة بحر' ? "px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
             renderGuardView();
         }
 
