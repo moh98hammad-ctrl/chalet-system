@@ -3,125 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">تفاصيل الحجز - شاليه بلقيس</title>
+    <title>تفاصيل حجزكم - شاليهات حمّاد</title>
+    
+    <!-- وسوم المعاينة للواتساب (تظهر كبطاقة فخمة) -->
+    <meta property="og:title" content="📄 تفاصيل حجزكم وتأكيد الحضور" />
+    <meta property="og:description" content="اضغط هنا للاطلاع على تفاصيل الحجز، مواعيد الدخول والخروج، والمبلغ المتبقي." />
+    <!-- ملاحظة: يفضل ترفع صورة شعار باسم logo.png في مجلد مشروعك على جيت هب -->
+    <meta property="og:image" content="https://moh98hammad-ctrl.github.io/chalet-system/logo.png" />
+    <meta property="og:type" content="website" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: Tahoma, sans-serif; background-color: #f8fafc; }
+        body { background: #080c14; color: #f8fafc; font-family: Tahoma, sans-serif; }
+        .gold-card { background: #121824; border: 1px solid rgba(217, 119, 6, 0.4); }
+        .gold-text { color: #fbbf24; }
     </style>
 </head>
-<body class="bg-slate-100 flex justify-center items-center min-h-screen p-4">
+<body class="p-4 flex justify-center items-center min-h-screen">
 
-    <div class="max-w-md w-full bg-white rounded-2xl shadow-lg border border-orange-200 p-6 space-y-6">
+    <div class="gold-card w-full max-w-md p-6 rounded-3xl shadow-2xl space-y-6 text-center">
+        <h1 class="text-xl font-black gold-text">📄 تفاصيل حجزكم</h1>
         
-        <div class="text-center border-b pb-4">
-            <h1 id="chaletHeader" class="text-2xl font-bold text-slate-800">🏡 شاليه بلقيس</h1>
-            <p class="text-sm text-slate-500 mt-1">سند تفاصيل الحجز الرسمي</p>
+        <div id="detailsBox" class="space-y-4 text-right">
+            <!-- سيتم تعبئة البيانات هنا تلقائياً من الرابط -->
         </div>
 
-        <div class="space-y-3 text-slate-700 text-sm">
-            <div class="flex justify-between items-center border-b pb-2">
-                <span class="text-slate-500">👤 الاسم</span>
-                <span id="name" class="font-bold">-</span>
-            </div>
-            <div class="flex justify-between items-center border-b pb-2">
-                <span class="text-slate-500">📥 الدخول</span>
-                <span id="checkin" class="font-bold">-</span>
-            </div>
-            <div class="flex justify-between items-center border-b pb-2">
-                <span class="text-slate-500">📤 الخروج</span>
-                <span id="checkout" class="font-bold">-</span>
-            </div>
-            <div class="flex justify-between items-center border-b pb-2">
-                <span class="text-slate-500">👥 عدد الأفراد</span>
-                <span id="guests" class="font-bold">10</span>
-            </div>
+        <div class="pt-4 border-t border-amber-600/30">
+            <p class="text-xs text-slate-400">نحن بانتظاركم، نتمنى لكم وقتاً ممتعاً! ✨</p>
         </div>
-
-        <div class="space-y-3 text-sm bg-orange-50/50 p-4 rounded-xl border border-orange-100">
-            <div class="flex justify-between items-center">
-                <span class="text-slate-600">💰 المبلغ الكلي</span>
-                <span id="total" class="font-bold text-slate-900">0 د.أ</span>
-            </div>
-            <div class="flex justify-between items-center">
-                <span class="text-slate-600">💵 العربون المدفوع</span>
-                <span id="paid" class="font-bold text-green-600">0 د.أ</span>
-            </div>
-            <div class="flex justify-between items-center border-t pt-2">
-                <span class="text-slate-800 font-bold">🔴 المتبقي</span>
-                <span id="remaining" class="font-bold text-red-600 text-base">0 د.أ</span>
-            </div>
-        </div>
-
-        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 text-center">
-            ⚠️ ملاحظة: العربون المدفوع غير مسترد في حال الإلغاء أو التأجيل.
-        </div>
-
-        <div class="bg-yellow-50/80 border border-yellow-200 rounded-xl p-4 text-xs text-slate-700 space-y-1">
-            <p class="font-bold text-amber-900">🔒 تأمين الشاليه</p>
-            <p>قيمة التأمين <strong>50 د.أ</strong> مستردة بالكامل عند تسليم الشاليه في الوقت المتفق عليه دون إحداث ضرر بالمرافق، والتأمين **غير مسترد** في حال وجود أضرار.</p>
-        </div>
-
-        <!-- معلومات الحارس مع الرقم والخيارات -->
-        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-            <div class="flex justify-between items-center text-sm text-slate-700 border-b border-slate-200 pb-2">
-                <span class="font-bold text-slate-900">🛡️ الحارس (عبد الله)</span>
-                <span dir="ltr" class="font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 text-xs">0781402459</span>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2 pt-1">
-                <a href="tel:0781402459" class="bg-blue-600 hover:bg-blue-700 text-white text-center py-2.5 rounded-xl font-bold text-xs transition shadow flex flex-col items-center justify-center gap-0.5">
-                    <span>📞</span>
-                    <span>اتصل الآن</span>
-                </a>
-                <a href="https://wa.me/962781402459" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2.5 rounded-xl font-bold text-xs transition shadow flex flex-col items-center justify-center gap-0.5">
-                    <span>💬</span>
-                    <span>واتساب</span>
-                </a>
-                <a href="https://maps.app.goo.gl/utgPrY2wvnVhY21a7" target="_blank" class="bg-amber-600 hover:bg-amber-700 text-white text-center py-2.5 rounded-xl font-bold text-xs transition shadow flex flex-col items-center justify-center gap-0.5">
-                    <span>📍</span>
-                    <span>الموقع</span>
-                </a>
-            </div>
-        </div>
-
     </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        function safeDecode(paramName) {
-            let val = urlParams.get(paramName);
-            if (!val) return '-';
-            try {
-                let decoded = decodeURIComponent(val.replace(/\+/g, ' '));
-                return decoded;
-            } catch (e) {
-                try {
-                    return decodeURI(val);
-                } catch (err) {
-                    return val;
-                }
-            }
-        }
+        // قراءة البيانات من الرابط وعرضها
+        const params = new URLSearchParams(window.location.search);
+        const container = document.getElementById('detailsBox');
 
-        const chaletName = safeDecode('chalet');
-        if(chaletName !== '-') {
-            document.getElementById('chaletHeader').innerText = '🏡 ' + chaletName;
-            document.getElementById('pageTitle').innerText = 'تفاصيل الحجز - ' + chaletName;
-        }
-
-        document.getElementById('name').innerText = safeDecode('name');
-        document.getElementById('checkin').innerText = safeDecode('in');
-        document.getElementById('checkout').innerText = safeDecode('out');
-        
-        if(urlParams.get('guests')) document.getElementById('guests').innerText = urlParams.get('guests');
-        if(urlParams.get('total')) document.getElementById('total').innerText = urlParams.get('total') + ' د.أ';
-        if(urlParams.get('paid')) document.getElementById('paid').innerText = urlParams.get('paid') + ' د.أ';
-        
-        const totalVal = parseFloat(urlParams.get('total')) || 0;
-        const paidVal = parseFloat(urlParams.get('paid')) || 0;
-        const remVal = urlParams.get('rem') ? urlParams.get('rem') : (totalVal - paidVal);
-        document.getElementById('remaining').innerText = remVal + ' د.أ';
+        container.innerHTML = `
+            <div class="space-y-2 text-sm">
+                <p class="text-slate-400">اسم الشاليه: <b class="text-white">${params.get('chalet') || '---'}</b></p>
+                <p class="text-slate-400">اسم الزبون: <b class="text-white">${params.get('name') || '---'}</b></p>
+                <p class="text-slate-400">تاريخ الدخول: <b class="text-amber-400">${params.get('in') || '---'}</b></p>
+                <p class="text-slate-400">تاريخ الخروج: <b class="text-amber-400">${params.get('out') || '---'}</b></p>
+                <div class="border-t border-slate-700 my-2 pt-2">
+                    <p class="text-slate-400">إجمالي المبلغ: <b class="text-white">${params.get('total')} د.أ</b></p>
+                    <p class="text-slate-400">العربون المدفوع: <b class="text-emerald-400">${params.get('paid')} د.أ</b></p>
+                    <p class="text-slate-400">المبلغ المتبقي: <b class="text-red-400">${params.get('rem')} د.أ</b></p>
+                </div>
+            </div>
+        `;
     </script>
 </body>
 </html>
