@@ -11,20 +11,47 @@
         .gold-text { color: #fbbf24; }
     </style>
 </head>
-<body class="p-4 max-w-lg mx-auto min-h-screen space-y-4">
+<body class="p-4 md:p-6 max-w-2xl mx-auto min-h-screen space-y-4">
     
-    <div class="gold-card p-4 rounded-2xl text-center space-y-1 shadow-xl">
-        <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (عبد الله)</h1>
-        <p class="text-xs text-slate-400">متابعة الحجوزات وتحديث المبالغ المحصلة لحظياً</p>
+    <!-- الهيدر والفلترة -->
+    <div class="gold-card p-4 rounded-2xl text-center space-y-3 shadow-xl">
+        <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (عبد الله) - متابعة الحجوزات</h1>
+        
+        <!-- أزرار اختيار الشاليه -->
+        <div class="flex gap-2 justify-center pt-1">
+            <button onclick="switchChalet('شاليه بلقيس')" id="btnBalqis" class="px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow">👑 شاليه بلقيس</button>
+            <button onclick="switchChalet('شاليه طلة بحر')" id="btnSea" class="px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700">🌊 شاليه طلة بحر</button>
+        </div>
+
+        <!-- شاشة المجاميع -->
+        <div id="chaletTotalBox" class="text-xs font-bold text-emerald-400 bg-slate-900/80 p-2.5 rounded-xl border border-amber-600/30">
+            إجمالي المحصل في شاليه بلقيس: 0 د.أ
+        </div>
     </div>
 
+    <!-- قائمة الحجوزات المثبتة والمرتبة -->
     <div id="guardBookingsList" class="space-y-3">
         <div class="text-center text-slate-500 py-10 text-xs">جاري تحميل الحجوزات من السحابة...</div>
     </div>
 
+    <!-- قسم تسجيل المصاريف -->
+    <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl mt-6">
+        <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 تسجيل المصاريف اليومية</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" id="expenseNote" placeholder="بيان المصروف (مثال: كهرباء، صيانة...)" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+            <input type="number" id="expenseAmount" placeholder="القيمة (د.أ)" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+        </div>
+        <button onclick="saveExpense()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">
+            💾 حفظ المصروف في السحابة
+        </button>
+        <div id="expensesList" class="space-y-1.5 pt-2 border-t border-amber-600/20 text-xs">
+            <span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة.</span>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, updateDoc, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBLADHraLGTIqPeG8uTLfYL3N-DveiCG0",
@@ -39,59 +66,121 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        async function loadGuardBookings() {
-            const container = document.getElementById('guardBookingsList');
+        let activeChalet = 'شاليه بلقيس';
+        let allBookings = [];
+        let allExpenses = [];
+
+        window.switchChalet = function(chalet) {
+            activeChalet = chalet;
+            if(chalet === 'شاليه بلقيس') {
+                document.getElementById('btnBalqis').className = "px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow";
+                document.getElementById('btnSea').className = "px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
+            } else {
+                document.getElementById('btnSea').className = "px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow";
+                document.getElementById('btnBalqis').className = "px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
+            }
+            renderGuardView();
+        }
+
+        async function loadGuardData() {
             try {
-                const querySnapshot = await getDocs(collection(db, "bookings"));
-                let list = [];
-                querySnapshot.forEach((docSnap) => {
-                    list.push({ id: docSnap.id, ...docSnap.data() });
+                const bookingSnap = await getDocs(collection(db, "bookings"));
+                allBookings = [];
+                bookingSnap.forEach((docSnap) => {
+                    allBookings.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                if (list.length === 0) {
-                    container.innerHTML = `<div class="gold-card p-4 rounded-xl text-center text-slate-400 text-xs">لا توجد حجوزات حالياً</div>`;
-                    return;
-                }
+                const expenseSnap = await getDocs(collection(db, "expenses"));
+                allExpenses = [];
+                expenseSnap.forEach((docSnap) => {
+                    allExpenses.push({ id: docSnap.id, ...docSnap.data() });
+                });
 
-                container.innerHTML = '';
-                list.forEach(b => {
-                    let total = parseFloat(b.totalPrice) || 0;
-                    let paid = parseFloat(b.paidAmount) || 0;
-                    let rem = total - paid;
-                    let collected = parseFloat(b.guardCollected) || 0;
-                    let stillRemaining = rem - collected;
+                renderGuardView();
+            } catch (e) {
+                console.error(e);
+                document.getElementById('guardBookingsList').innerHTML = `<div class="text-red-400 text-center text-xs">خطأ في الاتصال بالسحابة</div>`;
+            }
+        }
 
-                    container.innerHTML += `
-                        <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-lg">
-                            <div class="flex justify-between items-center border-b border-amber-600/30 pb-2">
-                                <span class="font-black text-white text-sm">👤 ${b.guestName}</span>
-                                <span class="bg-amber-500/20 text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-500/30 font-bold">${b.chalet}</span>
+        function renderGuardView() {
+            const container = document.getElementById('guardBookingsList');
+            const totalBox = document.getElementById('chaletTotalBox');
+            container.innerHTML = '';
+
+            // تصفية وحزم الحجوزات للشاليه النشط وترتيبها حسب التاريخ
+            const filtered = allBookings.filter(b => b.chalet === activeChalet);
+            filtered.sort((a, b) => new Date(a.dateCreated) - new Date(b.dateCreated));
+
+            let chaletCollectedTotal = filtered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
+            totalBox.innerText = `إجمالي المبالغ المحصلة في ${activeChalet}: ${chaletCollectedTotal} د.أ`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="gold-card p-4 rounded-2xl text-center text-slate-400 text-xs">لا توجد حجوزات مثبتة حالياً في ${activeChalet}</div>`;
+                return;
+            }
+
+            filtered.forEach(b => {
+                const total = parseFloat(b.totalPrice) || 0;
+                const paid = parseFloat(b.paidAmount) || 0;
+                const baseRem = total - paid;
+                const collectedByGuard = parseFloat(b.guardCollected) || 0;
+                const actualRemaining = baseRem - collectedByGuard;
+                const phone = b.phone || '';
+
+                let phoneDisplay = phone ? `<a href="https://wa.me/${phone}" target="_blank" class="text-emerald-400 font-bold hover:underline">📞 ${phone}</a>` : '<span class="text-slate-500">بدون رقم</span>';
+
+                container.innerHTML += `
+                    <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
+                        <div class="flex justify-between items-center border-b border-amber-600/30 pb-2">
+                            <span class="font-black text-white text-sm">👤 ${b.guestName}</span>
+                            <span>${phoneDisplay}</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
+                            <p>📥 الدخول: <b class="text-amber-400">${b.checkInFormatted || 'حسب الشفت'}</b></p>
+                            <p>📤 الخروج: <b class="text-amber-400">${b.checkOutFormatted || 'حسب الشفت'}</b></p>
+                            <p>💰 القيمة الكلية: <b class="text-white">${total} د.أ</b></p>
+                            <p>💵 الواصل الأساسي (العربون): <b class="text-emerald-400">${paid} د.أ</b></p>
+                            <p>🛡️ ما حصله الحارس: <b class="text-sky-400">${collectedByGuard} د.أ</b></p>
+                            <p>⏳ المتبقي للتحصيل: <b class="text-red-400">${actualRemaining > 0 ? actualRemaining : 0} د.أ</b></p>
+                        </div>
+
+                        <!-- خانة إضافة المبلغ الذي أعطاه الزبون -->
+                        <div class="bg-slate-900 p-3 rounded-xl border border-amber-600/30 space-y-2 pt-2">
+                            <div class="flex justify-between items-center text-[11px] text-slate-300 font-bold">
+                                <span>تسجيل دفعة جديدة من الزبون:</span>
                             </div>
-                            <div class="space-y-1 text-slate-300">
-                                <p>📥 الدخول: <b class="text-amber-400">${b.checkInFormatted || 'حسب الشفت'}</b></p>
-                                <p>📤 الخروج: <b class="text-amber-400">${b.checkOutFormatted || 'حسب الشفت'}</b></p>
-                                <p>💰 إجمالي الحجز: <b class="text-white">${total} د.أ</b> | العربون: <b class="text-emerald-400">${paid} د.أ</b></p>
-                                <p>⏳ الباقي الأساسي: <b class="text-amber-400">${rem} د.أ</b></p>
+                            <div class="flex gap-2">
+                                <input type="number" id="collect_${b.id}" placeholder="اكتب المبلغ الذي دفعه الزبون الآن" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+                                <button onclick="updateCollected('${b.id}')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl whitespace-nowrap shadow">➕ إضافة للسحابة</button>
                             </div>
-                            <div class="bg-slate-900 p-3 rounded-xl border border-amber-600/30 space-y-2">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-slate-300 font-bold">ما تم تحصيله من الزبون:</span>
-                                    <span class="text-sky-400 font-black text-sm">${collected} د.أ</span>
-                                </div>
-                                <div class="flex gap-2">
-                                    <input type="number" id="collect_${b.id}" placeholder="المبلغ المضاف" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-white">
-                                    <button onclick="updateCollected('${b.id}', ${rem})" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl whitespace-nowrap">➕ إضافة</button>
-                                </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // عرض المصاريف
+            const expContainer = document.getElementById('expensesList');
+            if (allExpenses.length === 0) {
+                expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة.</span>`;
+            } else {
+                expContainer.innerHTML = '';
+                allExpenses.forEach(ex => {
+                    expContainer.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-950 p-2 rounded-xl border border-slate-800">
+                            <span class="text-slate-300">📝 ${ex.note}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-red-400 font-bold">${ex.amount} د.أ</span>
+                                <button onclick="deleteExpense('${ex.id}')" class="text-red-500 font-bold px-1">✕</button>
                             </div>
                         </div>
                     `;
                 });
-            } catch (e) {
-                container.innerHTML = `<div class="text-red-400 text-center text-xs">خطأ في الاتصال بالسحابة</div>`;
             }
         }
 
-        window.updateCollected = async function(id, maxRem) {
+        window.updateCollected = async function(id) {
             let inputVal = parseFloat(document.getElementById(`collect_${id}`).value) || 0;
             if (inputVal <= 0) {
                 alert('الرجاء إدخال مبلغ صحيح!');
@@ -99,24 +188,55 @@
             }
 
             try {
-                const docRef = doc(db, "bookings", id);
-                // جلب القيمة الحالية وتحديثها
-                const querySnapshot = await getDocs(collection(db, "bookings"));
-                let currentItem = null;
-                querySnapshot.forEach(d => { if(d.id === id) currentItem = d.data(); });
-                
-                let oldCollected = currentItem ? (parseFloat(currentItem.guardCollected) || 0) : 0;
+                let b = allBookings.find(x => x.id === id);
+                let oldCollected = parseFloat(b.guardCollected) || 0;
                 let newTotalCollected = oldCollected + inputVal;
 
-                await updateDoc(docRef, { guardCollected: newTotalCollected });
-                alert('✅ تم تحديث المبالغ وإرسالها للسحابة بنجاح!');
-                loadGuardBookings();
+                await updateDoc(doc(db, "bookings", id), { guardCollected: newTotalCollected });
+                alert('✅ تم تحديث المبالغ وتحصيلها بنجاح!');
+                loadGuardData();
             } catch (err) {
-                alert('❌ حدث خطأ بالتحديث');
+                alert('❌ حدث خطأ أثناء التحديث');
             }
         }
 
-        loadGuardBookings();
+        window.saveExpense = async function() {
+            let note = document.getElementById('expenseNote').value.trim();
+            let amount = parseFloat(document.getElementById('expenseAmount').value);
+
+            if (!note || isNaN(amount) || amount <= 0) {
+                alert('الرجاء إدخال بيان المصروف وقيمة صحيحة!');
+                return;
+            }
+
+            try {
+                let expenseId = String(Date.now());
+                await setDoc(doc(db, "expenses", expenseId), {
+                    note: note,
+                    amount: amount,
+                    date: new Date().toISOString()
+                });
+                document.getElementById('expenseNote').value = '';
+                document.getElementById('expenseAmount').value = '';
+                alert('✅ تم حفظ المصروف بنجاح!');
+                loadGuardData();
+            } catch (err) {
+                alert('❌ خطأ في حفظ المصروف');
+            }
+        }
+
+        window.deleteExpense = async function(id) {
+            if (confirm('حذف هذا المصروف؟')) {
+                try {
+                    await deleteDoc(doc(db, "expenses", id));
+                    loadGuardData();
+                } catch (e) {
+                    alert('❌ خطأ بالحذف');
+                }
+            }
+        }
+
+        loadGuardData();
     </script>
 </body>
 </html>

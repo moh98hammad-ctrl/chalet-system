@@ -76,6 +76,10 @@
                     <input type="text" id="guestName" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
                 </div>
                 <div>
+                    <label class="block text-slate-300 mb-1">رقم هاتف الزبون</label>
+                    <input type="text" id="guestPhone" placeholder="07xxxxxxxx" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                </div>
+                <div>
                     <label class="block text-slate-300 mb-1">الشاليه</label>
                     <input type="text" id="chalet" readonly class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-amber-400 font-bold">
                 </div>
@@ -238,16 +242,17 @@
                 const rem = (parseFloat(b.totalPrice) || 0) - (parseFloat(b.paidAmount) || 0);
                 const checkInText = b.checkInFormatted || 'حسب الشفت';
                 const checkOutText = b.checkOutFormatted || 'حسب الشفت';
+                const phoneText = b.phone || '';
                 
                 let notesSection = b.notes ? `<p class="md:col-span-2 text-amber-300/90 bg-slate-950 p-2 rounded-xl border border-amber-600/20">📝 ملاحظات: ${b.notes}</p>` : '';
 
-                // رابط الفاتورة الملكية - تم إزالة التشفير لضمان ظهور النصوص العربية بوضوح على كل التلفونات
-                let receiptUrl = `https://moh98hammad-ctrl.github.io/chalet-system/receipt.html?chalet=${b.chalet}&name=${b.guestName}&type=حجز_شاليه&in=${checkInText}&out=${checkOutText}&guests=10&total=${b.totalPrice}&paid=${b.paidAmount}&rem=${rem}`;
+                // رابط الفاتورة الملكية مع التشفير الشامل لكي لا يقصه الواتساب أبداً
+                let receiptUrl = `https://moh98hammad-ctrl.github.io/chalet-system/receipt.html?chalet=${encodeURIComponent(b.chalet)}&name=${encodeURIComponent(b.guestName)}&phone=${encodeURIComponent(phoneText)}&type=${encodeURIComponent('حجز_شاليه')}&in=${encodeURIComponent(checkInText)}&out=${encodeURIComponent(checkOutText)}&guests=10&total=${b.totalPrice}&paid=${b.paidAmount}&rem=${rem}`;
 
                 container.innerHTML += `
                     <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
                         <div class="flex justify-between items-center border-b border-amber-600/30 pb-2">
-                            <span class="font-black text-white text-sm">👤 ${b.guestName}</span>
+                            <span class="font-black text-white text-sm">👤 ${b.guestName} <span class="text-emerald-400 font-normal">(${phoneText || 'بدون رقم'})</span></span>
                             <span class="bg-amber-500/20 text-amber-400 px-3 py-0.5 rounded-full border border-amber-500/30 font-bold">${b.chalet}</span>
                         </div>
 
@@ -260,8 +265,8 @@
                         </div>
 
                         <div class="flex flex-col gap-2 pt-2 border-t border-amber-600/20">
-                            <button onclick="navigator.clipboard.writeText('${receiptUrl}').then(() => alert('✅ تم نسخ رابط الفاتورة الملكية للزبون بنجاح!'))" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-center shadow">
-                                🔗 نسخ رابط تفاصيل الحجز للزبون (شامل اللوكيشن والتأمين والحارس)
+                            <button onclick="navigator.clipboard.writeText('${receiptUrl}').then(() => alert('✅ تم نسخ رابط تفاصيل الحجز للزبون!'))" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-center shadow">
+                                🔗 نسخ رابط تفاصيل الحجز للزبون
                             </button>
                             <div class="flex gap-2">
                                 <button onclick="openModalForEdit('${b.id}')" class="flex-1 bg-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-white font-bold py-2.5 rounded-xl border border-sky-500/30 transition text-center">
@@ -310,6 +315,7 @@
 
             document.getElementById('modalTitle').innerText = `تعديل حجز: ${b.guestName}`;
             document.getElementById('guestName').value = b.guestName;
+            document.getElementById('guestPhone').value = b.phone || '';
             document.getElementById('chalet').value = b.chalet;
             document.getElementById('totalPrice').value = b.totalPrice;
             document.getElementById('paidAmount').value = b.paidAmount;
@@ -327,6 +333,7 @@
         window.saveBooking = async function(e) {
             e.preventDefault();
             let name = document.getElementById('guestName').value;
+            let phone = document.getElementById('guestPhone').value;
             let total = parseFloat(document.getElementById('totalPrice').value);
             let paid = parseFloat(document.getElementById('paidAmount').value);
             let duration = document.getElementById('bookingDuration').value;
@@ -373,6 +380,7 @@
 
             let bookingData = {
                 guestName: name,
+                phone: phone,
                 chalet: currentChalet,
                 bookingType: duration,
                 slots: slots,
