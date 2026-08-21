@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقرير المالي - صاحب الشاليه</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: Tahoma, sans-serif; background-color: #080c14; color: #f8fafc; }
+        .gold-card { background: #121824; border: 1px solid rgba(217, 119, 6, 0.4); }
+        .gold-text { color: #fbbf24; }
+    </style>
+</head>
+<body class="p-4 md:p-6 max-w-xl mx-auto min-h-screen space-y-4">
+
+    <div class="gold-card p-5 rounded-2xl text-center space-y-2 shadow-xl">
+        <h1 class="text-lg font-black gold-text">📊 التقرير المالي الشامل لصاحب الشاليه</h1>
+        <p class="text-xs text-slate-400">شفافية كاملة للإيرادات والمصاريف وصافي الأرباح</p>
+        
+        <div class="flex gap-2 justify-center pt-2">
+            <button onclick="setChalet('شاليه بلقيس')" id="btnBalqis" class="px-4 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow">شاليه بلقيس</button>
+            <button onclick="setChalet('شاليه طلة بحر')" id="btnSea" class="px-4 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700">طلة بحر</button>
+        </div>
+    </div>
+
+    <!-- ملخص الحسابات -->
+    <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
+        <h2 class="font-bold gold-text text-sm border-b border-amber-600/30 pb-2">💰 الخلاصة المالية</h2>
+        <div class="grid grid-cols-2 gap-2 text-slate-300">
+            <p>إجمالي المدخولات: <b id="totalIncome" class="text-white">0 د.أ</b></p>
+            <p>إجمالي المصاريف: <b id="totalExpenses" class="text-red-400">0 د.أ</b></p>
+        </div>
+        <div class="border-t border-amber-600/20 pt-2 space-y-1">
+            <p class="text-amber-400 font-bold">صافي الربح الكلي: <span id="netProfit" class="text-white">0 د.أ</span></p>
+            <p class="text-emerald-400 font-bold">حصة الإدارة (25%): <span id="myShare" class="text-white">0 د.أ</span></p>
+            <p class="text-sky-400 font-bold">حصة صاحب الشاليه (75%): <span id="ownerShare" class="text-white">0 د.أ</span></p>
+        </div>
+    </div>
+
+    <!-- جدول المصاريف التفصيلي -->
+    <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
+        <h2 class="font-bold gold-text text-sm border-b border-amber-600/30 pb-2">📝 تفاصيل المصاريف (رواتب، جرة غاز، صيانة...)</h2>
+        <div id="expensesTable" class="space-y-1.5">
+            <span class="text-slate-500 text-[11px]">جاري تحميل المصاريف...</span>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLADHraLGTIqPeG8uTLfYL3N-DveiCG0",
+            authDomain: "chaletweb-a3c4c.firebaseapp.com",
+            projectId: "chaletweb-a3c4c",
+            storageBucket: "chaletweb-a3c4c.firebasestorage.app",
+            messagingSenderId: "500819160699",
+            appId: "1:500819160699:web:fede92cc5eae41de69bcde"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let activeChalet = 'شاليه بلقيس';
+        let allBookings = [], allExpenses = [];
+
+        window.setChalet = function(chalet) {
+            activeChalet = chalet;
+            document.getElementById('btnBalqis').className = chalet === 'شاليه بلقيس' ? "px-4 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-4 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
+            document.getElementById('btnSea').className = chalet === 'شاليه طلة بحر' ? "px-4 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-4 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
+            calculateReport();
+        }
+
+        async function loadData() {
+            try {
+                const bSnap = await getDocs(collection(db, "bookings"));
+                allBookings = [];
+                bSnap.forEach(d => allBookings.push(d.data()));
+
+                const eSnap = await getDocs(collection(db, "expenses"));
+                allExpenses = [];
+                eSnap.forEach(d => allExpenses.push(d.data()));
+
+                calculateReport();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function calculateReport() {
+            // حساب إجمالي الدخل لهذا الشاليه (من السعر الكلي للحجوزات)
+            const filteredBookings = allBookings.filter(b => b.chalet === activeChalet);
+            let totalIncome = filteredBookings.reduce((sum, b) => sum + (parseFloat(b.totalPrice) || 0), 0);
+
+            // حساب إجمالي المصاريف
+            let totalExpenses = allExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+
+            // الحسبة النهائية
+            let netProfit = totalIncome - totalExpenses;
+            if (netProfit < 0) netProfit = 0;
+
+            let myShare = netProfit * 0.25;
+            let ownerShare = netProfit * 0.75;
+
+            // عرض النتائج بالواجهة
+            document.getElementById('totalIncome').innerText = totalIncome + ' د.أ';
+            document.getElementById('totalExpenses').innerText = totalExpenses + ' د.أ';
+            document.getElementById('netProfit').innerText = netProfit + ' د.أ';
+            document.getElementById('myShare').innerText = myShare.toFixed(2) + ' د.أ';
+            document.getElementById('ownerShare').innerText = ownerShare.toFixed(2) + ' د.أ';
+
+            // عرض جدول المصاريف
+            const expContainer = document.getElementById('expensesTable');
+            if (allExpenses.length === 0) {
+                expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة.</span>`;
+            } else {
+                expContainer.innerHTML = '';
+                allExpenses.forEach(ex => {
+                    expContainer.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
+                            <span class="text-slate-300">📝 ${ex.note}</span>
+                            <span class="text-red-400 font-bold">${ex.amount} د.أ</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
