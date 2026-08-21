@@ -13,7 +13,7 @@
 </head>
 <body class="p-4 md:p-6 max-w-2xl mx-auto min-h-screen space-y-4">
     
-    <!-- الهيدر والفلترة -->
+    <!-- الهيدر الخاص بعبد الله فقط -->
     <div class="gold-card p-4 rounded-2xl text-center space-y-3 shadow-xl">
         <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (عبد الله) - متابعة الحجوزات</h1>
         
@@ -23,22 +23,22 @@
             <button onclick="switchChalet('شاليه طلة بحر')" id="btnSea" class="px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700">🌊 شاليه طلة بحر</button>
         </div>
 
-        <!-- شاشة المجاميع -->
+        <!-- شاشة المجاميع المحصلة مع عبد الله -->
         <div id="chaletTotalBox" class="text-xs font-bold text-emerald-400 bg-slate-900/80 p-2.5 rounded-xl border border-amber-600/30">
-            إجمالي المحصل في شاليه بلقيس: 0 د.أ
+            إجمالي المبالغ المحصلة مع عبد الله في شاليه بلقيس: 0 د.أ
         </div>
     </div>
 
-    <!-- قائمة الحجوزات المثبتة والمرتبة -->
+    <!-- قائمة الحجوزات لمتابعة الدخول والخروج والتحصيل -->
     <div id="guardBookingsList" class="space-y-3">
         <div class="text-center text-slate-500 py-10 text-xs">جاري تحميل الحجوزات من السحابة...</div>
     </div>
 
-    <!-- قسم تسجيل المصاريف -->
+    <!-- قسم تسجيل المصاريف اليومية -->
     <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl mt-6">
         <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 تسجيل المصاريف اليومية</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" id="expenseNote" placeholder="بيان المصروف (مثال: كهرباء، صيانة...)" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+            <input type="text" id="expenseNote" placeholder="بيان المصروف (مثال: غاز، كلور، صيانة...)" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
             <input type="number" id="expenseAmount" placeholder="القيمة (د.أ)" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
         </div>
         <button onclick="saveExpense()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">
@@ -51,7 +51,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, updateDoc, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBLADHraLGTIqPeG8uTLfYL3N-DveiCG0",
@@ -167,7 +167,7 @@
                 `;
             });
 
-            // عرض المصاريف
+            // عرض المصاريف (بدون زر حذف للحارس للحفاظ على سرية وضبط الحسابات)
             const expContainer = document.getElementById('expensesList');
             if (allExpenses.length === 0) {
                 expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة.</span>`;
@@ -177,10 +177,7 @@
                     expContainer.innerHTML += `
                         <div class="flex justify-between items-center bg-slate-950 p-2 rounded-xl border border-slate-800">
                             <span class="text-slate-300">📝 ${ex.note}</span>
-                            <div class="flex items-center gap-2">
-                                <span class="text-red-400 font-bold">${ex.amount} د.أ</span>
-                                <button onclick="deleteExpense('${ex.id}')" class="text-red-500 font-bold px-1">✕</button>
-                            </div>
+                            <span class="text-red-400 font-bold">${ex.amount} د.أ</span>
                         </div>
                     `;
                 });
@@ -241,17 +238,6 @@
                 loadGuardData();
             } catch (err) {
                 alert('❌ خطأ في حفظ المصروف');
-            }
-        }
-
-        window.deleteExpense = async function(id) {
-            if (confirm('حذف هذا المصروف؟')) {
-                try {
-                    await deleteDoc(doc(db, "expenses", id));
-                    loadGuardData();
-                } catch (e) {
-                    alert('❌ خطأ بالحذف');
-                }
             }
         }
 
