@@ -39,7 +39,7 @@
                 <span id="totalCollectedCash" class="text-emerald-400 font-black text-sm">0 د.أ</span>
             </div>
             <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
-                <span class="text-red-400">💸 إجمالي المصاريف المسجلة:</span>
+                <span class="text-red-400">💸 إجمالي المصاريف المسجلة (<span id="expenseChaletLabel">شاليه بلقيس</span>):</span>
                 <span id="totalExpensesBox" class="text-red-400 font-bold">0 د.أ</span>
             </div>
             <div class="flex justify-between items-center pt-1">
@@ -56,12 +56,12 @@
 
     <!-- قسم تسجيل المصاريف اليومية -->
     <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl mt-6">
-        <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 تسجيل المصاريف اليومية</h2>
+        <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 تسجيل المصاريف اليومية لـ (<span id="activeExpenseLabel">شاليه بلقيس</span>)</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" id="expenseNote" placeholder="بيان المصروف" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
             <input type="number" id="expenseAmount" placeholder="القيمة (د.أ)" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
         </div>
-        <button onclick="saveExpense()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">💾 حفظ المصروف</button>
+        <button onclick="saveExpense()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">💾 حفظ المصروف لهذا الشاليه</button>
         <div id="expensesList" class="space-y-1.5 pt-2 border-t border-amber-600/20 text-xs">
             <span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة.</span>
         </div>
@@ -91,6 +91,8 @@
 
         window.switchChalet = function(chalet) {
             activeChalet = chalet;
+            document.getElementById('expenseChaletLabel').innerText = chalet;
+            document.getElementById('activeExpenseLabel').innerText = chalet;
             document.getElementById('btnBalqis').className = chalet === 'شاليه بلقيس' ? "px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
             document.getElementById('btnSea').className = chalet === 'شاليه طلة بحر' ? "px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
             renderGuardView();
@@ -159,10 +161,18 @@
                 return chaletMatch && dateMatch;
             });
 
+            // تصفية المصاريف الخاصة بالشاليه والشهر المختار فقط
+            const filteredExpenses = allExpenses.filter(e => {
+                let chaletMatch = (e.chalet === activeChalet) || (!e.chalet && activeChalet === 'شاليه بلقيس');
+                let d = new Date(e.date);
+                let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
+                return chaletMatch && dateMatch;
+            });
+
             filtered.sort((a, b) => new Date(a.dateCreated) - new Date(b.dateCreated));
 
             let chaletCollectedCash = filtered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
-            let totalExpenses = allExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            let totalExpenses = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
             
             let netGuardCash = chaletCollectedCash - totalExpenses;
             if(netGuardCash < 0) netGuardCash = 0;
@@ -172,7 +182,7 @@
             document.getElementById('guardCashBalance').innerText = netGuardCash + ' د.أ';
 
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="gold-card p-4 rounded-2xl text-center text-slate-400 text-xs">لا توجد حجوزات في هذا الشهر (${currentSelectedMonth}/${currentSelectedYear})</div>`;
+                container.innerHTML = `<div class="gold-card p-4 rounded-2xl text-center text-slate-400 text-xs">لا توجد حجوزات في هذا الشاليه لهذا الشهر (${currentSelectedMonth}/${currentSelectedYear})</div>`;
                 return;
             }
 
@@ -224,11 +234,11 @@
             });
 
             const expContainer = document.getElementById('expensesList');
-            if (allExpenses.length === 0) {
-                expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة.</span>`;
+            if (filteredExpenses.length === 0) {
+                expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة في هذا الشاليه لهذا الشهر.</span>`;
             } else {
                 expContainer.innerHTML = '';
-                allExpenses.forEach(ex => {
+                filteredExpenses.forEach(ex => {
                     expContainer.innerHTML += `
                         <div class="flex justify-between items-center bg-slate-950 p-2 rounded-xl border border-slate-800">
                             <span class="text-slate-300">📝 ${ex.note}</span>
@@ -294,7 +304,12 @@
             let note = document.getElementById('expenseNote').value.trim();
             let amount = parseFloat(document.getElementById('expenseAmount').value);
             if (!note || isNaN(amount) || amount <= 0) return alert('أدخل بيانات صحيحة للمصروف');
-            await setDoc(doc(db, "expenses", String(Date.now())), { note, amount, date: new Date().toISOString() });
+            await setDoc(doc(db, "expenses", String(Date.now())), { 
+                note, 
+                amount, 
+                chalet: activeChalet, // ربط المصروف بالشاليه النشط حصرياً
+                date: new Date(currentSelectedYear, currentSelectedMonth - 1, 1).toISOString() 
+            });
             document.getElementById('expenseNote').value = '';
             document.getElementById('expenseAmount').value = '';
             loadGuardData();

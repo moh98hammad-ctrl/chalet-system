@@ -15,10 +15,17 @@
 
     <div class="gold-card p-5 rounded-2xl text-center space-y-4 shadow-xl">
         <h1 class="text-lg font-black gold-text">📈 الأرشيف المالي السنوي</h1>
-        <div class="flex justify-center gap-3">
-            <button onclick="changeYear(-1)" class="bg-amber-600 text-white px-4 py-2 rounded-xl font-bold">◀</button>
+        
+        <!-- أزرار اختيار الشاليه للفصل التام -->
+        <div class="flex gap-2 justify-center pt-1">
+            <button onclick="switchChalet('شاليه بلقيس')" id="btnBalqis" class="px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow">👑 شاليه بلقيس (25%)</button>
+            <button onclick="switchChalet('شاليه طلة بحر')" id="btnSea" class="px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700">🌊 شاليه طلة بحر (20%)</button>
+        </div>
+
+        <div class="flex justify-center gap-3 pt-2">
+            <button onclick="changeYear(-1)" class="bg-amber-600 text-white px-4 py-2 rounded-xl font-bold">◀️</button>
             <span id="yearDisplay" class="text-white font-black text-xl pt-1">2026</span>
-            <button onclick="changeYear(1)" class="bg-amber-600 text-white px-4 py-2 rounded-xl font-bold">▶</button>
+            <button onclick="changeYear(1)" class="bg-amber-600 text-white px-4 py-2 rounded-xl font-bold">▶️</button>
         </div>
     </div>
 
@@ -43,7 +50,15 @@
         const db = getFirestore(app);
 
         let selectedYear = 2026;
+        let activeChalet = 'شاليه بلقيس';
         let allBookings = [], allExpenses = [];
+
+        window.switchChalet = function(chalet) {
+            activeChalet = chalet;
+            document.getElementById('btnBalqis').className = chalet === 'شاليه بلقيس' ? "px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
+            document.getElementById('btnSea').className = chalet === 'شاليه طلة بحر' ? "px-5 py-2 rounded-xl font-bold text-xs bg-amber-600 text-white shadow" : "px-5 py-2 rounded-xl font-bold text-xs bg-slate-900 text-slate-300 border border-slate-700";
+            renderReport();
+        }
 
         async function loadData() {
             const bSnap = await getDocs(collection(db, "bookings"));
@@ -66,12 +81,17 @@
             const container = document.getElementById('annualReportContainer');
             container.innerHTML = '';
             
+            // تحديد نسبة الإدارة حسب الشاليه (25% لبلقيس، 20% لطلة بحر)
+            let managementShareRate = activeChalet === 'شاليه بلقيس' ? 0.25 : 0.20;
+
             let annualIncome = 0, annualExpenses = 0, annualNet = 0, annualMyShare = 0, annualOwnerShare = 0;
 
             for (let m = 1; m <= 12; m++) {
                 let monthlyIncome = allBookings.filter(b => {
+                    let chaletMatch = b.chalet === activeChalet;
                     let d = new Date(b.dateCreated);
-                    return d.getFullYear() === selectedYear && (d.getMonth() + 1) === m;
+                    let dateMatch = d.getFullYear() === selectedYear && (d.getMonth() + 1) === m;
+                    return chaletMatch && dateMatch;
                 }).reduce((sum, b) => sum + (parseFloat(b.totalPrice) || 0), 0);
 
                 let monthlyExpenses = allExpenses.filter(e => {
@@ -80,19 +100,19 @@
                 }).reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
 
                 let monthlyNet = Math.max(0, monthlyIncome - monthlyExpenses);
-                let myShare = monthlyNet * 0.25;
-                let ownerShare = monthlyNet * 0.75;
+                let myShare = monthlyNet * managementShareRate;
+                let ownerShare = monthlyNet * (1 - managementShareRate);
 
                 annualIncome += monthlyIncome; annualExpenses += monthlyExpenses;
                 annualNet += monthlyNet; annualMyShare += myShare; annualOwnerShare += ownerShare;
 
                 container.innerHTML += `
                     <div class="gold-card p-4 rounded-2xl text-xs space-y-2">
-                        <h2 class="text-amber-500 font-bold border-b border-amber-600/30 pb-1">شهر ${m}</h2>
+                        <h2 class="text-amber-500 font-bold border-b border-amber-600/30 pb-1">شهر ${m} (${activeChalet})</h2>
                         <div class="grid grid-cols-2 gap-2 text-slate-300">
                             <p>الدخل: <b class="text-white">${monthlyIncome}</b></p>
                             <p>المصاريف: <b class="text-red-400">${monthlyExpenses}</b></p>
-                            <p>حصة الإدارة: <b class="text-emerald-400">${myShare.toFixed(2)}</b></p>
+                            <p>حصة الإدارة (${activeChalet === 'شاليه بلقيس' ? '25%' : '20%'}): <b class="text-emerald-400">${myShare.toFixed(2)}</b></p>
                             <p>حصة المالك: <b class="text-sky-400">${ownerShare.toFixed(2)}</b></p>
                         </div>
                     </div>
@@ -101,11 +121,11 @@
 
             container.innerHTML += `
                 <div class="bg-amber-600 p-4 rounded-2xl text-white font-bold text-xs space-y-2 mt-6 shadow-2xl">
-                    <h2 class="text-lg font-black border-b border-white/30 pb-2">المجموع السنوي (${selectedYear})</h2>
+                    <h2 class="text-lg font-black border-b border-white/30 pb-2">المجموع السنوي - ${activeChalet} (${selectedYear})</h2>
                     <p>إجمالي الدخل السنوي: ${annualIncome.toFixed(2)} د.أ</p>
                     <p>إجمالي المصاريف السنوي: ${annualExpenses.toFixed(2)} د.أ</p>
                     <p>صافي الربح السنوي: ${annualNet.toFixed(2)} د.أ</p>
-                    <p>إجمالي حصة الإدارة السنوي: ${annualMyShare.toFixed(2)} د.أ</p>
+                    <p>إجمالي حصة الإدارة السنوي (${activeChalet === 'شاليه بلقيس' ? '25%' : '20%'}): ${annualMyShare.toFixed(2)} د.أ</p>
                     <p>إجمالي حصة المالك السنوي: ${annualOwnerShare.toFixed(2)} د.أ</p>
                 </div>
             `;
