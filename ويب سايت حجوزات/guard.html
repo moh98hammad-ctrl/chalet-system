@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة الحارس - عبد الله</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #080c14; color: #f8fafc; font-family: system-ui, sans-serif; }
+        .gold-card { background: #121824; border: 1px solid rgba(217, 119, 6, 0.4); }
+        .gold-text { color: #fbbf24; }
+    </style>
+</head>
+<body class="p-4 max-w-lg mx-auto min-h-screen space-y-4">
+    
+    <div class="gold-card p-4 rounded-2xl text-center space-y-1 shadow-xl">
+        <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (عبد الله)</h1>
+        <p class="text-xs text-slate-400">متابعة الحجوزات وتحديث المبالغ المحصلة لحظياً</p>
+    </div>
+
+    <div id="guardBookingsList" class="space-y-3">
+        <div class="text-center text-slate-500 py-10 text-xs">جاري تحميل الحجوزات من السحابة...</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLADHraLGTIqPeG8uTLfYL3N-DveiCG0",
+            authDomain: "chaletweb-a3c4c.firebaseapp.com",
+            projectId: "chaletweb-a3c4c",
+            storageBucket: "chaletweb-a3c4c.firebasestorage.app",
+            messagingSenderId: "500819160699",
+            appId: "1:500819160699:web:fede92cc5eae41de69bcde",
+            measurementId: "G-8HZM9GJ54P"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function loadGuardBookings() {
+            const container = document.getElementById('guardBookingsList');
+            try {
+                const querySnapshot = await getDocs(collection(db, "bookings"));
+                let list = [];
+                querySnapshot.forEach((docSnap) => {
+                    list.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                if (list.length === 0) {
+                    container.innerHTML = `<div class="gold-card p-4 rounded-xl text-center text-slate-400 text-xs">لا توجد حجوزات حالياً</div>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                list.forEach(b => {
+                    let total = parseFloat(b.totalPrice) || 0;
+                    let paid = parseFloat(b.paidAmount) || 0;
+                    let rem = total - paid;
+                    let collected = parseFloat(b.guardCollected) || 0;
+                    let stillRemaining = rem - collected;
+
+                    container.innerHTML += `
+                        <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-lg">
+                            <div class="flex justify-between items-center border-b border-amber-600/30 pb-2">
+                                <span class="font-black text-white text-sm">👤 ${b.guestName}</span>
+                                <span class="bg-amber-500/20 text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-500/30 font-bold">${b.chalet}</span>
+                            </div>
+                            <div class="space-y-1 text-slate-300">
+                                <p>📥 الدخول: <b class="text-amber-400">${b.checkInFormatted || 'حسب الشفت'}</b></p>
+                                <p>📤 الخروج: <b class="text-amber-400">${b.checkOutFormatted || 'حسب الشفت'}</b></p>
+                                <p>💰 إجمالي الحجز: <b class="text-white">${total} د.أ</b> | العربون: <b class="text-emerald-400">${paid} د.أ</b></p>
+                                <p>⏳ الباقي الأساسي: <b class="text-amber-400">${rem} د.أ</b></p>
+                            </div>
+                            <div class="bg-slate-900 p-3 rounded-xl border border-amber-600/30 space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-300 font-bold">ما تم تحصيله من الزبون:</span>
+                                    <span class="text-sky-400 font-black text-sm">${collected} د.أ</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <input type="number" id="collect_${b.id}" placeholder="المبلغ المضاف" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-white">
+                                    <button onclick="updateCollected('${b.id}', ${rem})" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl whitespace-nowrap">➕ إضافة</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (e) {
+                container.innerHTML = `<div class="text-red-400 text-center text-xs">خطأ في الاتصال بالسحابة</div>`;
+            }
+        }
+
+        window.updateCollected = async function(id, maxRem) {
+            let inputVal = parseFloat(document.getElementById(`collect_${id}`).value) || 0;
+            if (inputVal <= 0) {
+                alert('الرجاء إدخال مبلغ صحيح!');
+                return;
+            }
+
+            try {
+                const docRef = doc(db, "bookings", id);
+                // جلب القيمة الحالية وتحديثها
+                const querySnapshot = await getDocs(collection(db, "bookings"));
+                let currentItem = null;
+                querySnapshot.forEach(d => { if(d.id === id) currentItem = d.data(); });
+                
+                let oldCollected = currentItem ? (parseFloat(currentItem.guardCollected) || 0) : 0;
+                let newTotalCollected = oldCollected + inputVal;
+
+                await updateDoc(docRef, { guardCollected: newTotalCollected });
+                alert('✅ تم تحديث المبالغ وإرسالها للسحابة بنجاح!');
+                loadGuardBookings();
+            } catch (err) {
+                alert('❌ حدث خطأ بالتحديث');
+            }
+        }
+
+        loadGuardBookings();
+    </script>
+</body>
+</html>
