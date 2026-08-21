@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفاصيل الحجز - شاليه بلقيس</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: Tahoma, sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="bg-slate-100 flex justify-center items-center min-h-screen p-4">
+
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-lg border border-orange-200 p-6 space-y-6">
+        
+        <div class="text-center border-b pb-4">
+            <h1 class="text-2xl font-bold text-slate-800">🏡 شاليه بلقيس</h1>
+            <p class="text-sm text-slate-500 mt-1">سند تفاصيل الحجز الرسمي</p>
+        </div>
+
+        <div class="space-y-3 text-slate-700 text-sm">
+            <div class="flex justify-between items-center border-b pb-2">
+                <span class="text-slate-500">👤 الاسم</span>
+                <span id="name" class="font-bold">-</span>
+            </div>
+            <div class="flex justify-between items-center border-b pb-2">
+                <span class="text-slate-500">📥 الدخول</span>
+                <span id="checkin" class="font-bold">-</span>
+            </div>
+            <div class="flex justify-between items-center border-b pb-2">
+                <span class="text-slate-500">📤 الخروج</span>
+                <span id="checkout" class="font-bold">-</span>
+            </div>
+            <div class="flex justify-between items-center border-b pb-2">
+                <span class="text-slate-500">👥 عدد الأفراد</span>
+                <span id="guests" class="font-bold">10</span>
+            </div>
+        </div>
+
+        <div class="space-y-3 text-sm bg-orange-50/50 p-4 rounded-xl border border-orange-100">
+            <div class="flex justify-between items-center">
+                <span class="text-slate-600">💰 المبلغ الكلي</span>
+                <span id="total" class="font-bold text-slate-900">0 د.أ</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-slate-600">💵 العربون المدفوع</span>
+                <span id="paid" class="font-bold text-green-600">0 د.أ</span>
+            </div>
+            <div class="flex justify-between items-center border-t pt-2">
+                <span class="text-slate-800 font-bold">🔴 المتبقي</span>
+                <span id="remaining" class="font-bold text-red-600 text-base">0 د.أ</span>
+            </div>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 text-center">
+            ⚠️ ملاحظة: العربون المدفوع غير مسترد في حال الإلغاء أو التأجيل.
+        </div>
+
+        <div class="bg-yellow-50/80 border border-yellow-200 rounded-xl p-4 text-xs text-slate-700 space-y-1">
+            <p class="font-bold text-amber-900">🔒 تأمين الشاليه</p>
+            <p>قيمة التأمين <strong>50 د.أ</strong> مستردة بالكامل عند تسليم الشاليه في الوقت المتفق عليه دون إحداث ضرر بالمرافق، والتأمين **غير مسترد** في حال وجود أضرار.</p>
+        </div>
+
+        <div class="flex justify-between items-center border-t pt-4 text-sm text-slate-700">
+            <span>🛡️ الحارس</span>
+            <span class="font-bold text-slate-900">عبد الله</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 pt-2">
+            <a href="https://wa.me/" id="guardWhatsapp" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2.5 rounded-xl font-bold text-sm transition shadow">
+                💬 واتساب الحارس
+            </a>
+            <!-- تم وضع الرابط هنا -->
+            <a href="https://maps.app.goo.gl/utgPrY2wvnVhY21a7" target="_blank" class="bg-amber-600 hover:bg-amber-700 text-white text-center py-2.5 rounded-xl font-bold text-sm transition shadow">
+                📍 الموقع
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.get('name')) document.getElementById('name').innerText = urlParams.get('name');
+        if(urlParams.get('in')) document.getElementById('checkin').innerText = urlParams.get('in');
+        if(urlParams.get('out')) document.getElementById('checkout').innerText = urlParams.get('out');
+        if(urlParams.get('guests')) document.getElementById('guests').innerText = urlParams.get('guests');
+        if(urlParams.get('total')) document.getElementById('total').innerText = urlParams.get('total') + ' د.أ';
+        if(urlParams.get('paid')) document.getElementById('paid').innerText = urlParams.get('paid') + ' د.أ';
+        if(urlParams.get('remaining')) document.getElementById('remaining').innerText = urlParams.get('remaining') + ' د.أ';
+    </script>
+</body>
+</html>
