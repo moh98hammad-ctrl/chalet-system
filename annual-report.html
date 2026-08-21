@@ -81,30 +81,39 @@
             const container = document.getElementById('annualReportContainer');
             container.innerHTML = '';
             
-            // تحديد نسبة الإدارة حسب الشاليه (25% لبلقيس، 20% لطلة بحر)
             let managementShareRate = activeChalet === 'شاليه بلقيس' ? 0.25 : 0.20;
+            let ownerShareRate = 1 - managementShareRate;
 
             let annualIncome = 0, annualExpenses = 0, annualNet = 0, annualMyShare = 0, annualOwnerShare = 0;
 
             for (let m = 1; m <= 12; m++) {
+                // تصفية الحجوزات للشهر والشاليه المحدد
                 let monthlyIncome = allBookings.filter(b => {
                     let chaletMatch = b.chalet === activeChalet;
-                    let d = new Date(b.dateCreated);
-                    let dateMatch = d.getFullYear() === selectedYear && (d.getMonth() + 1) === m;
+                    let dateMatch = b.slots && b.slots.some(s => {
+                        let dParts = s.split('_')[0].split('-');
+                        return parseInt(dParts[0]) === selectedYear && parseInt(dParts[1]) === m;
+                    });
                     return chaletMatch && dateMatch;
                 }).reduce((sum, b) => sum + (parseFloat(b.totalPrice) || 0), 0);
 
+                // تصفية المصاريف بحيث تخص الشاليه المختار والشهر المختار فقط
                 let monthlyExpenses = allExpenses.filter(e => {
+                    let chaletMatch = (e.chalet === activeChalet) || (!e.chalet && activeChalet === 'شاليه بلقيس');
                     let d = new Date(e.date);
-                    return d.getFullYear() === selectedYear && (d.getMonth() + 1) === m;
+                    let dateMatch = d.getFullYear() === selectedYear && (d.getMonth() + 1) === m;
+                    return chaletMatch && dateMatch;
                 }).reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
 
                 let monthlyNet = Math.max(0, monthlyIncome - monthlyExpenses);
                 let myShare = monthlyNet * managementShareRate;
-                let ownerShare = monthlyNet * (1 - managementShareRate);
+                let ownerShare = monthlyNet * ownerShareRate;
 
-                annualIncome += monthlyIncome; annualExpenses += monthlyExpenses;
-                annualNet += monthlyNet; annualMyShare += myShare; annualOwnerShare += ownerShare;
+                annualIncome += monthlyIncome; 
+                annualExpenses += monthlyExpenses;
+                annualNet += monthlyNet; 
+                annualMyShare += myShare; 
+                annualOwnerShare += ownerShare;
 
                 container.innerHTML += `
                     <div class="gold-card p-4 rounded-2xl text-xs space-y-2">
