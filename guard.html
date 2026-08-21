@@ -108,12 +108,11 @@
             const totalBox = document.getElementById('chaletTotalBox');
             container.innerHTML = '';
 
-            // تصفية وحزم الحجوزات للشاليه النشط وترتيبها حسب التاريخ
             const filtered = allBookings.filter(b => b.chalet === activeChalet);
             filtered.sort((a, b) => new Date(a.dateCreated) - new Date(b.dateCreated));
 
             let chaletCollectedTotal = filtered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
-            totalBox.innerText = `إجمالي المبالغ المحصلة في ${activeChalet}: ${chaletCollectedTotal} د.أ`;
+            totalBox.innerText = `إجمالي المبالغ المحصلة مع عبد الله في ${activeChalet}: ${chaletCollectedTotal} د.أ`;
 
             if (filtered.length === 0) {
                 container.innerHTML = `<div class="gold-card p-4 rounded-2xl text-center text-slate-400 text-xs">لا توجد حجوزات مثبتة حالياً في ${activeChalet}</div>`;
@@ -125,7 +124,10 @@
                 const paid = parseFloat(b.paidAmount) || 0;
                 const baseRem = total - paid;
                 const collectedByGuard = parseFloat(b.guardCollected) || 0;
-                const actualRemaining = baseRem - collectedByGuard;
+                const cliqCollected = parseFloat(b.cliqCollected) || 0;
+                const ownerCollected = parseFloat(b.ownerCollected) || 0;
+                
+                const actualRemaining = baseRem - collectedByGuard - cliqCollected - ownerCollected;
                 const phone = b.phone || '';
 
                 let phoneDisplay = phone ? `<a href="https://wa.me/${phone}" target="_blank" class="text-emerald-400 font-bold hover:underline">📞 ${phone}</a>` : '<span class="text-slate-500">بدون رقم</span>';
@@ -142,19 +144,24 @@
                             <p>📤 الخروج: <b class="text-amber-400">${b.checkOutFormatted || 'حسب الشفت'}</b></p>
                             <p>💰 القيمة الكلية: <b class="text-white">${total} د.أ</b></p>
                             <p>💵 الواصل الأساسي (العربون): <b class="text-emerald-400">${paid} د.أ</b></p>
-                            <p>🛡️ ما حصله الحارس: <b class="text-sky-400">${collectedByGuard} د.أ</b></p>
+                            <p>🛡️ مع عبد الله (كاش): <b class="text-sky-400">${collectedByGuard} د.أ</b></p>
+                            <p>💳 تحويل كليك: <b class="text-emerald-300">${cliqCollected} د.أ</b></p>
+                            <p>👑 دفع لصاحب الشاليه: <b class="text-amber-300">${ownerCollected} د.أ</b></p>
                             <p>⏳ المتبقي للتحصيل: <b class="text-red-400">${actualRemaining > 0 ? actualRemaining : 0} د.أ</b></p>
                         </div>
 
-                        <!-- خانة إضافة المبلغ الذي أعطاه الزبون -->
-                        <div class="bg-slate-900 p-3 rounded-xl border border-amber-600/30 space-y-2 pt-2">
-                            <div class="flex justify-between items-center text-[11px] text-slate-300 font-bold">
-                                <span>تسجيل دفعة جديدة من الزبون:</span>
+                        <!-- خانة تسجيل الدفعة مع خيارات تحديد الطريقة -->
+                        <div class="bg-slate-900 p-3 rounded-xl border border-amber-600/30 space-y-2.5 pt-2">
+                            <div class="text-[11px] text-amber-400 font-bold">تسجيل دفعة جديدة من الزبون:</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <input type="number" id="amount_${b.id}" placeholder="المبلغ (د.أ)" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+                                <select id="method_${b.id}" class="bg-slate-950 border border-amber-500/50 rounded-xl p-2.5 text-amber-300 font-bold text-xs">
+                                    <option value="guard">محاسبة عبد الله (كاش)</option>
+                                    <option value="cliq">تحويل كليك (CliQ)</option>
+                                    <option value="owner">دفعه لصاحب الشاليه مباشرة</option>
+                                </select>
                             </div>
-                            <div class="flex gap-2">
-                                <input type="number" id="collect_${b.id}" placeholder="اكتب المبلغ الذي دفعه الزبون الآن" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
-                                <button onclick="updateCollected('${b.id}')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl whitespace-nowrap shadow">➕ إضافة للسحابة</button>
-                            </div>
+                            <button onclick="updatePayment('${b.id}')" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-xl shadow transition">➕ تثبيت الدفعة في السحابة</button>
                         </div>
                     </div>
                 `;
@@ -180,20 +187,32 @@
             }
         }
 
-        window.updateCollected = async function(id) {
-            let inputVal = parseFloat(document.getElementById(`collect_${id}`).value) || 0;
-            if (inputVal <= 0) {
+        window.updatePayment = async function(id) {
+            let amount = parseFloat(document.getElementById(`amount_${id}`).value) || 0;
+            let method = document.getElementById(`method_${id}`).value;
+
+            if (amount <= 0) {
                 alert('الرجاء إدخال مبلغ صحيح!');
                 return;
             }
 
             try {
                 let b = allBookings.find(x => x.id === id);
-                let oldCollected = parseFloat(b.guardCollected) || 0;
-                let newTotalCollected = oldCollected + inputVal;
+                let updateData = {};
 
-                await updateDoc(doc(db, "bookings", id), { guardCollected: newTotalCollected });
-                alert('✅ تم تحديث المبالغ وتحصيلها بنجاح!');
+                if (method === 'guard') {
+                    let oldVal = parseFloat(b.guardCollected) || 0;
+                    updateData.guardCollected = oldVal + amount;
+                } else if (method === 'cliq') {
+                    let oldVal = parseFloat(b.cliqCollected) || 0;
+                    updateData.cliqCollected = oldVal + amount;
+                } else if (method === 'owner') {
+                    let oldVal = parseFloat(b.ownerCollected) || 0;
+                    updateData.ownerCollected = oldVal + amount;
+                }
+
+                await updateDoc(doc(db, "bookings", id), updateData);
+                alert('✅ تم تسجيل وتحديث الدفعة بنجاح!');
                 loadGuardData();
             } catch (err) {
                 alert('❌ حدث خطأ أثناء التحديث');
