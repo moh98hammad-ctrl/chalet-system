@@ -49,8 +49,8 @@
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 text-center" id="monthGrid"></div>
         </div>
 
-        <!-- صندوق ملخص الإيرادات والمصاريف الشهري (المضاف حديثاً لك) -->
-        <div class="gold-card p-4 rounded-3xl shadow-2xl space-y-2">
+        <!-- صندوق ملخص الإيرادات والمصاريف الشهري -->
+        <div class="gold-card p-4 rounded-3xl shadow-2xl space-y-3">
             <div class="flex justify-between items-center text-xs text-amber-400 font-bold border-b border-amber-600/30 pb-2">
                 <span>📊 ملخص إيرادات هذا الشهر (<span id="summaryMonthName">أغسطس</span> <span id="summaryYearText">2026</span>)</span>
                 <span id="summaryChaletName" class="text-white">شاليه بلقيس</span>
@@ -65,8 +65,16 @@
                     <b id="indexExpenses" class="text-white text-sm">0 د.أ</b>
                 </div>
                 <div class="bg-slate-950 p-2.5 rounded-xl border border-amber-500/30">
-                    <p class="text-amber-400">⏳ عربونات مستقبلية:</p>
+                    <p class="text-amber-400">⏳ عربونات هذا الشهر:</p>
                     <b id="indexFutureDeposits" class="text-white text-sm">0 د.أ</b>
+                </div>
+            </div>
+
+            <!-- تفصيل العربونات المستقبلية لكل شهر على حدة -->
+            <div class="mt-3 pt-3 border-t border-amber-600/30 space-y-2">
+                <p class="text-xs font-bold text-amber-400">📅 تفصيل العربونات المستقبلية (موزعة حسب كل شهر):</p>
+                <div id="monthlyDepositsBreakdown" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-xs">
+                    <!-- سيتم تعبئتها برمجياً -->
                 </div>
             </div>
         </div>
@@ -275,21 +283,38 @@
             let totalGuardCash = monthFiltered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
             let totalExpenses = allExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
 
-            const futureFiltered = bookings.filter(b => {
-                if (b.chalet !== currentChalet) return false;
-                return b.slots && b.slots.some(s => {
-                    let dParts = s.split('_')[0].split('-');
-                    let sYear = parseInt(dParts[0]);
-                    let sMonth = parseInt(dParts[1]);
-                    return (sYear > currentSelectedYear) || (sYear === currentSelectedYear && sMonth > currentSelectedMonth);
-                });
-            });
-            let futureDeposits = futureFiltered.reduce((sum, b) => sum + (parseFloat(b.paidAmount) || 0), 0);
+            // حساب العربونات الخاصة والشخصية للشهر المحدد فقط
+            let currentMonthDeposits = monthFiltered.reduce((sum, b) => sum + (parseFloat(b.paidAmount) || 0), 0);
 
             document.getElementById('indexGuardCash').innerText = totalGuardCash + ' د.أ';
             document.getElementById('indexExpenses').innerText = totalExpenses + ' د.أ';
-            document.getElementById('indexFutureDeposits').innerText = futureDeposits + ' د.أ';
+            document.getElementById('indexFutureDeposits').innerText = currentMonthDeposits + ' د.أ';
             document.getElementById('summaryChaletName').innerText = currentChalet;
+
+            // حساب وتوزيع العربونات لكل شهر على حدة للسنة الحالية
+            const breakdownContainer = document.getElementById('monthlyDepositsBreakdown');
+            breakdownContainer.innerHTML = '';
+
+            for (let m = 1; m <= 12; m++) {
+                let mBookings = bookings.filter(b => {
+                    let chaletMatch = b.chalet === currentChalet;
+                    let dateMatch = b.slots && b.slots.some(s => {
+                        let dParts = s.split('_')[0].split('-'); 
+                        return parseInt(dParts[0]) === currentSelectedYear && parseInt(dParts[1]) === m;
+                    });
+                    return chaletMatch && dateMatch;
+                });
+
+                let mTotalDeposit = mBookings.reduce((sum, b) => sum + (parseFloat(b.paidAmount) || 0), 0);
+                let isCurrent = m === currentSelectedMonth;
+
+                breakdownContainer.innerHTML += `
+                    <div class="bg-slate-950 p-2 rounded-xl border ${isCurrent ? 'border-amber-500 bg-amber-950/20' : 'border-slate-800'} flex flex-col justify-between">
+                        <span class="text-slate-400 font-bold">${monthsNames[m - 1]}</span>
+                        <span class="text-amber-300 font-black text-sm">${mTotalDeposit} د.أ</span>
+                    </div>
+                `;
+            }
         }
 
         window.renderCalendarGrid = function() {
