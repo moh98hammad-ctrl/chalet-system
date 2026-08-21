@@ -69,7 +69,7 @@
 
     <!-- قسم تسجيل المصاريف اليومية -->
     <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl mt-6">
-        <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 تسجيل المصاريف اليومية لـ (<span id="activeExpenseLabel">شاليه بلقيس</span>)</h2>
+        <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 تسجيل المصاريف وسندات القبض لـ (<span id="activeExpenseLabel">شاليه بلقيس</span>)</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" id="expenseNote" placeholder="بيان المصروف" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
             <input type="number" id="expenseAmount" placeholder="القيمة (د.أ)" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
@@ -182,7 +182,7 @@
                 return chaletMatch && dateMatch && !e.isGuardCollection;
             });
 
-            // مبالغ القبض من الحارس لهذا الشهر
+            // مبالغ القبض من الحارس لهذا الشهر والشاليه
             const guardCollections = allExpenses.filter(e => {
                 let chaletMatch = (e.chalet === activeChalet) || (!e.chalet && activeChalet === 'شاليه بلقيس');
                 let d = new Date(e.date);
@@ -196,7 +196,7 @@
             let totalExpenses = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
             let totalCollectedFromGuard = guardCollections.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
             
-            // صافي الذمة = الكاش المسلم للحارس - (المصاريف + ما تم قبضه منه)
+            // صافي الذمة = الكاش المحصل مع عبد الله - (المصاريف + ما تم قبضه منه بسندات القبض)
             let netGuardCash = chaletCollectedCash - (totalExpenses + totalCollectedFromGuard);
             if(netGuardCash < 0) netGuardCash = 0;
 
@@ -255,7 +255,7 @@
                 });
             }
 
-            // عرض المصاريف وعمليات القبض من الحارس في قائمة المصاريف
+            // عرض المصاريف وعمليات القبض مع زر الحذف والتعديل (✕)
             const expContainer = document.getElementById('expensesList');
             const allCombinedExpenses = [...filteredExpenses, ...guardCollections];
             if (allCombinedExpenses.length === 0) {
@@ -269,7 +269,7 @@
                             <span>${isCollection ? '📥 ' : '📝 '} ${ex.note}</span>
                             <div class="flex items-center gap-2">
                                 <span class="${isCollection ? 'text-purple-400 font-bold' : 'text-red-400 font-bold'}">${ex.amount} د.أ</span>
-                                <button onclick="deleteExpense('${ex.id}')" class="text-red-500 font-bold px-1 hover:text-red-300">✕</button>
+                                <button onclick="deleteExpense('${ex.id}')" title="حذف وتعديل" class="text-red-500 font-black px-2 py-0.5 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white transition">✕</button>
                             </div>
                         </div>
                     `;
@@ -344,7 +344,7 @@
             loadGuardData();
         }
 
-        // دالة استلام الكاش من عبد الله
+        // دالة استلام الكاش من عبد الله (سند قبض)
         window.collectCashFromGuard = async function() {
             let amount = parseFloat(document.getElementById('collectAmount').value);
             if (isNaN(amount) || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح للاستلام!');
@@ -353,17 +353,18 @@
                 note: `قبض كاش من الحارس (عبد الله) - ${activeChalet}`, 
                 amount: amount, 
                 chalet: activeChalet, 
-                isGuardCollection: true, // علامة لتمييزه بأنه سند قبض من الحارس
+                isGuardCollection: true, 
                 date: new Date(currentSelectedYear, currentSelectedMonth - 1, 15).toISOString() 
             });
             
             document.getElementById('collectAmount').value = '';
-            alert('✅ تم استلام المبلغ بنجاح وخصمه من ذمة الحارس وإضافته لحساباتك!');
+            alert('✅ تم استلام المبلغ بنجاح وخصمه من ذمة الحارس وإضافته لحسابك!');
             loadGuardData();
         }
 
+        // دالة حذف المصروف أو سند القبض لتعديل القيمة
         window.deleteExpense = async function(id) {
-            if (confirm('حذف هذا البند نهائياً؟')) {
+            if (confirm('هل تريد حذف هذا البند لتعديل قيمته؟')) {
                 await deleteDoc(doc(db, "expenses", id));
                 loadGuardData();
             }
