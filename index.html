@@ -17,7 +17,7 @@
 
     <div class="max-w-4xl mx-auto w-full space-y-5">
         
-        <!-- الشريط العلوي المطور (مع زر الأرشيف السنوي المضاف) -->
+        <!-- الشريط العلوي المطور -->
         <div class="gold-card p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3 shadow-xl">
             <div>
                 <h1 class="text-base font-black gold-text">👑 لوحة التحكم الملكية</h1>
@@ -41,9 +41,9 @@
         <!-- واجهة اختيار السنة والأشهر -->
         <div class="gold-card p-4 rounded-3xl space-y-4 shadow-xl">
             <div class="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-amber-600/40">
-                <button onclick="changeYear(-1)" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2 rounded-xl transition shadow text-sm">◀ السنة السابقة</button>
+                <button onclick="changeYear(-1)" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2 rounded-xl transition shadow text-sm">◀️ السنة السابقة</button>
                 <span id="yearDisplay" class="text-amber-400 font-black text-base">2026</span>
-                <button onclick="changeYear(1)" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2 rounded-xl transition shadow text-sm">السنة القادمة ▶</button>
+                <button onclick="changeYear(1)" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2 rounded-xl transition shadow text-sm">السنة القادمة ▶️</button>
             </div>
 
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 text-center" id="monthGrid"></div>
@@ -84,6 +84,10 @@
                 <div>
                     <label class="block text-slate-300 mb-1">رقم هاتف الزبون</label>
                     <input type="text" id="guestPhone" placeholder="07xxxxxxxx" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                </div>
+                <div>
+                    <label class="block text-amber-400 font-bold mb-1">عدد الأشخاص 👥</label>
+                    <input type="number" id="guestCount" placeholder="مثال: 10" required class="w-full bg-slate-900 border border-amber-500/50 rounded-xl p-2.5 text-white font-bold">
                 </div>
                 <div>
                     <label class="block text-slate-300 mb-1">الشاليه</label>
@@ -290,11 +294,12 @@
                 const checkInText = b.checkInFormatted || 'حسب الشفت';
                 const checkOutText = b.checkOutFormatted || 'حسب الشفت';
                 const phoneText = b.phone || '';
+                const guestCountText = b.guestCount || 'غير محدد';
                 const pStatusText = paymentLabels[b.paymentStatus] || 'غير محدد';
                 
                 let notesSection = b.notes ? `<p class="md:col-span-2 text-amber-300/90 bg-slate-950 p-2 rounded-xl border border-amber-600/20">📝 ملاحظات: ${b.notes}</p>` : '';
 
-                let receiptUrl = `https://moh98hammad-ctrl.github.io/chalet-system/receipt.html?chalet=${encodeURIComponent(b.chalet)}&name=${encodeURIComponent(b.guestName)}&phone=${encodeURIComponent(phoneText)}&type=${encodeURIComponent('حجز_شاليه')}&in=${encodeURIComponent(checkInText)}&out=${encodeURIComponent(checkOutText)}&guests=10&total=${b.totalPrice}&paid=${b.paidAmount}&rem=${rem}`;
+                let receiptUrl = `https://moh98hammad-ctrl.github.io/chalet-system/receipt.html?chalet=${encodeURIComponent(b.chalet)}&name=${encodeURIComponent(b.guestName)}&phone=${encodeURIComponent(phoneText)}&type=${encodeURIComponent('حجز_شاليه')}&in=${encodeURIComponent(checkInText)}&out=${encodeURIComponent(checkOutText)}&guests=${encodeURIComponent(guestCountText)}&total=${b.totalPrice}&paid=${b.paidAmount}&rem=${rem}`;
 
                 container.innerHTML += `
                     <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
@@ -306,6 +311,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-slate-300">
                             <p>📥 الدخول: <b class="text-amber-400">${checkInText}</b></p>
                             <p>📤 الخروج: <b class="text-amber-400">${checkOutText}</b></p>
+                            <p>👥 عدد الأشخاص: <b class="text-amber-300">${guestCountText}</b></p>
                             <p>💰 الإجمالي: <b class="text-white">${b.totalPrice} د.أ</b> | العربون: <b class="text-emerald-400">${b.paidAmount} د.أ</b></p>
                             <p>⏳ المتبقي: <b class="text-amber-400">${rem} د.أ</b> | المحاسبة: <b class="text-sky-400">${pStatusText}</b></p>
                             ${notesSection}
@@ -363,6 +369,7 @@
             document.getElementById('modalTitle').innerText = `تعديل حجز: ${b.guestName}`;
             document.getElementById('guestName').value = b.guestName;
             document.getElementById('guestPhone').value = b.phone || '';
+            document.getElementById('guestCount').value = b.guestCount || '';
             document.getElementById('chalet').value = b.chalet;
             document.getElementById('totalPrice').value = b.totalPrice;
             document.getElementById('paidAmount').value = b.paidAmount;
@@ -382,6 +389,7 @@
             e.preventDefault();
             let name = document.getElementById('guestName').value;
             let phone = document.getElementById('guestPhone').value;
+            let guestCount = document.getElementById('guestCount').value;
             let total = parseFloat(document.getElementById('totalPrice').value);
             let paid = parseFloat(document.getElementById('paidAmount').value);
             let paymentStatus = document.getElementById('paymentStatus').value;
@@ -430,6 +438,7 @@
             let bookingData = {
                 guestName: name,
                 phone: phone,
+                guestCount: guestCount,
                 chalet: currentChalet,
                 bookingType: duration,
                 slots: slots,
@@ -454,7 +463,16 @@
         }
 
         window.deleteBooking = async function() {
-            (currentEditDocId && confirm('حذف هذا الحجز نهائياً من السحابة؟')) && await deleteDoc(doc(db, "bookings", currentEditDocId)).then(() => { closeModal(); loadBookings(); alert('✅ تم الحذف بنجاح'); });
+            if (currentEditDocId && confirm('حذف هذا الحجز نهائياً من السحابة؟')) {
+                try {
+                    await deleteDoc(doc(db, "bookings", currentEditDocId));
+                    closeModal();
+                    loadBookings();
+                    alert('✅ تم الحذف بنجاح');
+                } catch (err) {
+                    alert('❌ خطأ بالحذف');
+                }
+            }
         }
 
         window.deleteBookingExplicit = async function(id) {
