@@ -49,6 +49,28 @@
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 text-center" id="monthGrid"></div>
         </div>
 
+        <!-- صندوق ملخص الإيرادات والمصاريف الشهري (المضاف حديثاً لك) -->
+        <div class="gold-card p-4 rounded-3xl shadow-2xl space-y-2">
+            <div class="flex justify-between items-center text-xs text-amber-400 font-bold border-b border-amber-600/30 pb-2">
+                <span>📊 ملخص إيرادات هذا الشهر (<span id="summaryMonthName">أغسطس</span> <span id="summaryYearText">2026</span>)</span>
+                <span id="summaryChaletName" class="text-white">شاليه بلقيس</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-300 pt-1">
+                <div class="bg-slate-950 p-2.5 rounded-xl border border-sky-500/30">
+                    <p class="text-sky-400">💵 المحصل كاش (مع عبد الله):</p>
+                    <b id="indexGuardCash" class="text-white text-sm">0 د.أ</b>
+                </div>
+                <div class="bg-slate-950 p-2.5 rounded-xl border border-red-500/30">
+                    <p class="text-red-400">💸 إجمالي المصاريف:</p>
+                    <b id="indexExpenses" class="text-white text-sm">0 د.أ</b>
+                </div>
+                <div class="bg-slate-950 p-2.5 rounded-xl border border-amber-500/30">
+                    <p class="text-amber-400">⏳ عربونات مستقبلية:</p>
+                    <b id="indexFutureDeposits" class="text-white text-sm">0 د.أ</b>
+                </div>
+            </div>
+        </div>
+
         <!-- التقويم -->
         <div class="gold-card p-4 rounded-3xl shadow-2xl space-y-3">
             <div class="flex justify-between items-center text-xs text-amber-400/90 border-b border-amber-600/30 pb-2 font-bold">
@@ -164,11 +186,13 @@
         let currentSelectedYear = 2026;
         let currentSelectedMonth = 8;
         let bookings = [];
+        let allExpenses = [];
         let activeSelectedDate = '';
         let activeSelectedShift = '';
         let currentEditDocId = null;
 
         const daysArabic = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+        const monthsNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
         window.filterChalet = function(chalet) {
             currentChalet = chalet;
@@ -176,6 +200,7 @@
             document.getElementById('btn-c2').className = chalet === 'شاليه طلة بحر' ? 'chalet-btn bg-amber-600 text-white font-extrabold px-5 py-2.5 rounded-2xl shadow whitespace-nowrap' : 'chalet-btn bg-slate-900 text-slate-300 font-bold px-4 py-2.5 rounded-2xl border border-slate-700 whitespace-nowrap';
             renderCalendarGrid();
             renderConfirmedList();
+            updateMonthlySummary();
         }
 
         window.changeYear = function(amount) {
@@ -184,6 +209,7 @@
             renderMonthGrid();
             renderCalendarGrid();
             renderConfirmedList();
+            updateMonthlySummary();
         }
 
         window.changeMonth = function(monthNum) {
@@ -191,6 +217,7 @@
             renderMonthGrid();
             renderCalendarGrid();
             renderConfirmedList();
+            updateMonthlySummary();
         }
 
         window.renderMonthGrid = function() {
@@ -208,6 +235,8 @@
                     </button>`;
             });
             document.getElementById('calendarTitle').innerText = `تقويم الحجوزات (سنة ${currentSelectedYear} - شهر ${currentSelectedMonth})`;
+            document.getElementById('summaryMonthName').innerText = monthsNames[currentSelectedMonth - 1];
+            document.getElementById('summaryYearText').innerText = currentSelectedYear;
         }
 
         async function loadBookings() {
@@ -217,12 +246,50 @@
                 querySnapshot.forEach((docSnap) => {
                     bookings.push({ id: docSnap.id, ...docSnap.data() });
                 });
+
+                const expenseSnap = await getDocs(collection(db, "expenses"));
+                allExpenses = [];
+                expenseSnap.forEach((docSnap) => {
+                    allExpenses.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
                 renderMonthGrid();
                 renderCalendarGrid();
                 renderConfirmedList();
+                updateMonthlySummary();
             } catch (e) {
                 console.error("Error loading bookings: ", e);
             }
+        }
+
+        function updateMonthlySummary() {
+            const monthFiltered = bookings.filter(b => {
+                let chaletMatch = b.chalet === currentChalet;
+                let dateMatch = b.slots && b.slots.some(s => {
+                    let dParts = s.split('_')[0].split('-'); 
+                    return parseInt(dParts[0]) === currentSelectedYear && parseInt(dParts[1]) === currentSelectedMonth;
+                });
+                return chaletMatch && dateMatch;
+            });
+
+            let totalGuardCash = monthFiltered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
+            let totalExpenses = allExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+
+            const futureFiltered = bookings.filter(b => {
+                if (b.chalet !== currentChalet) return false;
+                return b.slots && b.slots.some(s => {
+                    let dParts = s.split('_')[0].split('-');
+                    let sYear = parseInt(dParts[0]);
+                    let sMonth = parseInt(dParts[1]);
+                    return (sYear > currentSelectedYear) || (sYear === currentSelectedYear && sMonth > currentSelectedMonth);
+                });
+            });
+            let futureDeposits = futureFiltered.reduce((sum, b) => sum + (parseFloat(b.paidAmount) || 0), 0);
+
+            document.getElementById('indexGuardCash').innerText = totalGuardCash + ' د.أ';
+            document.getElementById('indexExpenses').innerText = totalExpenses + ' د.أ';
+            document.getElementById('indexFutureDeposits').innerText = futureDeposits + ' د.أ';
+            document.getElementById('summaryChaletName').innerText = currentChalet;
         }
 
         window.renderCalendarGrid = function() {
