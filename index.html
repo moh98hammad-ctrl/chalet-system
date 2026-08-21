@@ -55,10 +55,14 @@
                 <span>📊 ملخص إيرادات هذا الشهر (<span id="summaryMonthName">أغسطس</span> <span id="summaryYearText">2026</span>)</span>
                 <span id="summaryChaletName" class="text-white">شاليه بلقيس</span>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-300 pt-1">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-300 pt-1">
                 <div class="bg-slate-950 p-2.5 rounded-xl border border-sky-500/30">
                     <p class="text-sky-400">💵 المحصل كاش (مع عبد الله):</p>
                     <b id="indexGuardCash" class="text-white text-sm">0 د.أ</b>
+                </div>
+                <div class="bg-slate-950 p-2.5 rounded-xl border border-purple-500/30">
+                    <p class="text-purple-400">📥 ما معي باليد (عربون + قبض):</p>
+                    <b id="indexMyPocketCash" class="text-white text-sm">0 د.أ</b>
                 </div>
                 <div class="bg-slate-950 p-2.5 rounded-xl border border-red-500/30">
                     <p class="text-red-400">💸 إجمالي المصاريف:</p>
@@ -280,13 +284,31 @@
                 return chaletMatch && dateMatch;
             });
 
-            let totalGuardCash = monthFiltered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
-            let totalExpenses = allExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            // فلترة المصاريف وسندات القبض الخاصة بالشاليه والشهر الحالي
+            const filteredExpenses = allExpenses.filter(e => {
+                let chaletMatch = (e.chalet === currentChalet) || (!e.chalet && currentChalet === 'شاليه بلقيس');
+                let d = new Date(e.date);
+                let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
+                return chaletMatch && dateMatch && !e.isGuardCollection;
+            });
 
-            // حساب العربونات الخاصة والشخصية للشهر المحدد فقط
+            const guardCollections = allExpenses.filter(e => {
+                let chaletMatch = (e.chalet === currentChalet) || (!e.chalet && currentChalet === 'شاليه بلقيس');
+                let d = new Date(e.date);
+                let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
+                return chaletMatch && dateMatch && e.isGuardCollection;
+            });
+
+            let totalGuardCash = monthFiltered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
+            let totalExpenses = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            let totalCollectedFromGuard = guardCollections.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
             let currentMonthDeposits = monthFiltered.reduce((sum, b) => sum + (parseFloat(b.paidAmount) || 0), 0);
 
+            // المبلغ الإجمالي الموجود معك باليد (العربونات المحولة + ما تم استلامه كاش من الحارس)
+            let totalInMyPocket = currentMonthDeposits + totalCollectedFromGuard;
+
             document.getElementById('indexGuardCash').innerText = totalGuardCash + ' د.أ';
+            document.getElementById('indexMyPocketCash').innerText = totalInMyPocket + ' د.أ';
             document.getElementById('indexExpenses').innerText = totalExpenses + ' د.أ';
             document.getElementById('indexFutureDeposits').innerText = currentMonthDeposits + ' د.أ';
             document.getElementById('summaryChaletName').innerText = currentChalet;

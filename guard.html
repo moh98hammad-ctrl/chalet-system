@@ -33,7 +33,7 @@
         <div class="grid grid-cols-4 sm:grid-cols-6 gap-1.5 pt-1" id="monthGrid"></div>
 
         <!-- صندوق تفصيل ذمة عبد الله والمجاميع -->
-        <div class="bg-slate-950 p-3 rounded-xl border border-sky-500/40 text-right space-y-1.5 text-xs">
+        <div class="bg-slate-950 p-3 rounded-xl border border-sky-500/40 text-right space-y-2 text-xs">
             <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
                 <span class="text-sky-400 font-bold">💵 إجمالي ما استلمه كاش باليد:</span>
                 <span id="totalCollectedCash" class="text-emerald-400 font-black text-sm">0 د.أ</span>
@@ -42,9 +42,22 @@
                 <span class="text-red-400">💸 إجمالي المصاريف المسجلة (<span id="expenseChaletLabel">شاليه بلقيس</span>):</span>
                 <span id="totalExpensesBox" class="text-red-400 font-bold">0 د.أ</span>
             </div>
+            <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                <span class="text-purple-400 font-bold">📥 إجمالي ما قبضته منه (سندات القبض):</span>
+                <span id="totalCollectedFromGuardBox" class="text-purple-400 font-bold">0 د.أ</span>
+            </div>
             <div class="flex justify-between items-center pt-1">
                 <span class="text-amber-400 font-bold">📌 صافي الذمة المتبقية بذمته:</span>
                 <span id="guardCashBalance" class="text-white text-base font-black">0 د.أ</span>
+            </div>
+
+            <!-- زر وسند استلام الكاش السريع -->
+            <div class="pt-2 border-t border-slate-800 space-y-2">
+                <div class="text-[11px] text-purple-400 font-bold">قبض كاش من عبد الله (يوضع كمصروف خصم من ذمته):</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input type="number" id="collectAmount" placeholder="المبلغ المقبوض (د.أ)" class="bg-slate-900 border border-purple-500/50 rounded-xl p-2 text-white text-xs font-bold">
+                    <button onclick="collectCashFromGuard()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded-xl text-xs transition shadow">📥 استلام الكاش وتسجيله</button>
+                </div>
             </div>
         </div>
     </div>
@@ -161,23 +174,35 @@
                 return chaletMatch && dateMatch;
             });
 
+            // فصل المصاريف العادية عن مبالغ القبض من الحارس
             const filteredExpenses = allExpenses.filter(e => {
                 let chaletMatch = (e.chalet === activeChalet) || (!e.chalet && activeChalet === 'شاليه بلقيس');
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
-                return chaletMatch && dateMatch;
+                return chaletMatch && dateMatch && !e.isGuardCollection;
+            });
+
+            // مبالغ القبض من الحارس لهذا الشهر
+            const guardCollections = allExpenses.filter(e => {
+                let chaletMatch = (e.chalet === activeChalet) || (!e.chalet && activeChalet === 'شاليه بلقيس');
+                let d = new Date(e.date);
+                let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
+                return chaletMatch && dateMatch && e.isGuardCollection;
             });
 
             filtered.sort((a, b) => new Date(a.dateCreated) - new Date(b.dateCreated));
 
             let chaletCollectedCash = filtered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
             let totalExpenses = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            let totalCollectedFromGuard = guardCollections.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
             
-            let netGuardCash = chaletCollectedCash - totalExpenses;
+            // صافي الذمة = الكاش المسلم للحارس - (المصاريف + ما تم قبضه منه)
+            let netGuardCash = chaletCollectedCash - (totalExpenses + totalCollectedFromGuard);
             if(netGuardCash < 0) netGuardCash = 0;
 
             document.getElementById('totalCollectedCash').innerText = chaletCollectedCash + ' د.أ';
             document.getElementById('totalExpensesBox').innerText = totalExpenses + ' د.أ';
+            document.getElementById('totalCollectedFromGuardBox').innerText = totalCollectedFromGuard + ' د.أ';
             document.getElementById('guardCashBalance').innerText = netGuardCash + ' د.أ';
 
             if (filtered.length === 0) {
@@ -230,17 +255,20 @@
                 });
             }
 
+            // عرض المصاريف وعمليات القبض من الحارس في قائمة المصاريف
             const expContainer = document.getElementById('expensesList');
-            if (filteredExpenses.length === 0) {
-                expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة في هذا الشاليه لهذا الشهر.</span>`;
+            const allCombinedExpenses = [...filteredExpenses, ...guardCollections];
+            if (allCombinedExpenses.length === 0) {
+                expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف أو سندات قبض مسجلة في هذا الشاليه لهذا الشهر.</span>`;
             } else {
                 expContainer.innerHTML = '';
-                filteredExpenses.forEach(ex => {
+                allCombinedExpenses.forEach(ex => {
+                    let isCollection = ex.isGuardCollection;
                     expContainer.innerHTML += `
-                        <div class="flex justify-between items-center bg-slate-950 p-2 rounded-xl border border-slate-800">
-                            <span class="text-slate-300">📝 ${ex.note}</span>
+                        <div class="flex justify-between items-center bg-slate-950 p-2 rounded-xl border ${isCollection ? 'border-purple-500/40 text-purple-300' : 'border-slate-800 text-slate-300'}">
+                            <span>${isCollection ? '📥 ' : '📝 '} ${ex.note}</span>
                             <div class="flex items-center gap-2">
-                                <span class="text-red-400 font-bold">${ex.amount} د.أ</span>
+                                <span class="${isCollection ? 'text-purple-400 font-bold' : 'text-red-400 font-bold'}">${ex.amount} د.أ</span>
                                 <button onclick="deleteExpense('${ex.id}')" class="text-red-500 font-bold px-1 hover:text-red-300">✕</button>
                             </div>
                         </div>
@@ -308,6 +336,7 @@
                 note, 
                 amount, 
                 chalet: activeChalet, 
+                isGuardCollection: false,
                 date: new Date(currentSelectedYear, currentSelectedMonth - 1, 15).toISOString() 
             });
             document.getElementById('expenseNote').value = '';
@@ -315,8 +344,26 @@
             loadGuardData();
         }
 
+        // دالة استلام الكاش من عبد الله
+        window.collectCashFromGuard = async function() {
+            let amount = parseFloat(document.getElementById('collectAmount').value);
+            if (isNaN(amount) || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح للاستلام!');
+            
+            await setDoc(doc(db, "expenses", String(Date.now())), { 
+                note: `قبض كاش من الحارس (عبد الله) - ${activeChalet}`, 
+                amount: amount, 
+                chalet: activeChalet, 
+                isGuardCollection: true, // علامة لتمييزه بأنه سند قبض من الحارس
+                date: new Date(currentSelectedYear, currentSelectedMonth - 1, 15).toISOString() 
+            });
+            
+            document.getElementById('collectAmount').value = '';
+            alert('✅ تم استلام المبلغ بنجاح وخصمه من ذمة الحارس وإضافته لحساباتك!');
+            loadGuardData();
+        }
+
         window.deleteExpense = async function(id) {
-            if (confirm('حذف هذا المصروف نهائياً؟')) {
+            if (confirm('حذف هذا البند نهائياً؟')) {
                 await deleteDoc(doc(db, "expenses", id));
                 loadGuardData();
             }
