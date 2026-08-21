@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تفاصيل الحجز - شاليه بلقيس</title>
+    <title id="pageTitle">تفاصيل الحجز - شاليه بلقيس</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: Tahoma, sans-serif; background-color: #f8fafc; }
@@ -14,7 +14,7 @@
     <div class="max-w-md w-full bg-white rounded-2xl shadow-lg border border-orange-200 p-6 space-y-6">
         
         <div class="text-center border-b pb-4">
-            <h1 class="text-2xl font-bold text-slate-800">🏡 شاليه بلقيس</h1>
+            <h1 id="chaletHeader" class="text-2xl font-bold text-slate-800">🏡 شاليه بلقيس</h1>
             <p class="text-sm text-slate-500 mt-1">سند تفاصيل الحجز الرسمي</p>
         </div>
 
@@ -70,7 +70,6 @@
             <a href="https://wa.me/" id="guardWhatsapp" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2.5 rounded-xl font-bold text-sm transition shadow">
                 💬 واتساب الحارس
             </a>
-            <!-- تم وضع الرابط هنا -->
             <a href="https://maps.app.goo.gl/utgPrY2wvnVhY21a7" target="_blank" class="bg-amber-600 hover:bg-amber-700 text-white text-center py-2.5 rounded-xl font-bold text-sm transition shadow">
                 📍 الموقع
             </a>
@@ -79,13 +78,41 @@
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        if(urlParams.get('name')) document.getElementById('name').innerText = urlParams.get('name');
-        if(urlParams.get('in')) document.getElementById('checkin').innerText = urlParams.get('in');
-        if(urlParams.get('out')) document.getElementById('checkout').innerText = urlParams.get('out');
+        
+        function safeDecode(paramName) {
+            let val = urlParams.get(paramName);
+            if (!val) return '-';
+            try {
+                // فك الرموز وتحويل المسافات البرمجية إلى مسافات عادية
+                let decoded = decodeURIComponent(val.replace(/\+/g, ' '));
+                return decoded;
+            } catch (e) {
+                try {
+                    return decodeURI(val);
+                } catch (err) {
+                    return val;
+                }
+            }
+        }
+
+        const chaletName = safeDecode('chalet');
+        if(chaletName !== '-') {
+            document.getElementById('chaletHeader').innerText = '🏡 ' + chaletName;
+            document.getElementById('pageTitle').innerText = 'تفاصيل الحجز - ' + chaletName;
+        }
+
+        document.getElementById('name').innerText = safeDecode('name');
+        document.getElementById('checkin').innerText = safeDecode('in');
+        document.getElementById('checkout').innerText = safeDecode('out');
+        
         if(urlParams.get('guests')) document.getElementById('guests').innerText = urlParams.get('guests');
         if(urlParams.get('total')) document.getElementById('total').innerText = urlParams.get('total') + ' د.أ';
         if(urlParams.get('paid')) document.getElementById('paid').innerText = urlParams.get('paid') + ' د.أ';
-        if(urlParams.get('remaining')) document.getElementById('remaining').innerText = urlParams.get('remaining') + ' د.أ';
+        
+        const totalVal = parseFloat(urlParams.get('total')) || 0;
+        const paidVal = parseFloat(urlParams.get('paid')) || 0;
+        const remVal = urlParams.get('rem') ? urlParams.get('rem') : (totalVal - paidVal);
+        document.getElementById('remaining').innerText = remVal + ' د.أ';
     </script>
 </body>
 </html>

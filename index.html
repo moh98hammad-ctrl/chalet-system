@@ -238,13 +238,11 @@
                 const rem = (parseFloat(b.totalPrice) || 0) - (parseFloat(b.paidAmount) || 0);
                 const checkInText = b.checkInFormatted || 'حسب الشفت';
                 const checkOutText = b.checkOutFormatted || 'حسب الشفت';
-                const guardCollected = b.guardCollected || 0;
-                const guardRemaining = rem - guardCollected;
-
+                
                 let notesSection = b.notes ? `<p class="md:col-span-2 text-amber-300/90 bg-slate-950 p-2 rounded-xl border border-amber-600/20">📝 ملاحظات: ${b.notes}</p>` : '';
 
-                // رابط الفاتورة الملكية المربوط على GitHub Pages
-                let receiptUrl = `https://moh98hammad-ctrl.github.io/chalet-system/receipt.html?chalet=${encodeURIComponent(b.chalet)}&name=${encodeURIComponent(b.guestName)}&type=حجز%20شاليه&in=${encodeURIComponent(checkInText)}&out=${encodeURIComponent(checkOutText)}&guests=10&total=${b.totalPrice}&paid=${b.paidAmount}&rem=${rem}`;
+                // رابط الفاتورة الملكية - تم إزالة التشفير لضمان ظهور النصوص العربية بوضوح على كل التلفونات
+                let receiptUrl = `https://moh98hammad-ctrl.github.io/chalet-system/receipt.html?chalet=${b.chalet}&name=${b.guestName}&type=حجز_شاليه&in=${checkInText}&out=${checkOutText}&guests=10&total=${b.totalPrice}&paid=${b.paidAmount}&rem=${rem}`;
 
                 container.innerHTML += `
                     <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
