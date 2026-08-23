@@ -75,21 +75,21 @@
             <p>قيمة التأمين 50 د.أ مستردة بالكامل عند تسليم الشاليه في الوقت المتفق عليه دون إحداث ضرر بالمرافق، والتأمين **غير مسترد** في حال وجود أضرار.</p>
         </div>
 
-        <!-- معلومات الحارس والتواصل -->
+        <!-- معلومات الحارس والتواصل (تتغير تلقائياً حسب الشاليه) -->
         <div class="border border-slate-200 p-4 rounded-2xl space-y-3 bg-white shadow-sm">
             <div class="flex justify-between items-center">
-                <span class="text-xs font-bold text-slate-700">🛡️ الحارس (عبد الله)</span>
-                <a href="tel:0781402459" class="bg-amber-100 text-amber-800 px-3 py-1 rounded-xl text-xs font-bold tracking-widest">0781402459</a>
+                <span id="guardNameText" class="text-xs font-bold text-slate-700">🛡️ الحارس (صالح)</span>
+                <a id="guardPhoneLink" href="tel:0790067196" class="bg-amber-100 text-amber-800 px-3 py-1 rounded-xl text-xs font-bold tracking-widest">0790067196</a>
             </div>
             
             <div class="grid grid-cols-3 gap-2 pt-1">
-                <a href="https://maps.app.goo.gl/YourLocationLink" target="_blank" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-center text-xs shadow flex flex-col items-center justify-center gap-0.5 transition">
+                <a id="mapLink" href="#" target="_blank" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-center text-xs shadow flex flex-col items-center justify-center gap-0.5 transition">
                     📍 الموقع
                 </a>
-                <a href="https://wa.me/962781402459" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-center text-xs shadow flex flex-col items-center justify-center gap-0.5 transition">
+                <a id="whatsappLink" href="#" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-center text-xs shadow flex flex-col items-center justify-center gap-0.5 transition">
                     💬 واتساب
                 </a>
-                <a href="tel:0781402459" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-center text-xs shadow flex flex-col items-center justify-center gap-0.5 transition">
+                <a id="callLink" href="tel:0790067196" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-center text-xs shadow flex flex-col items-center justify-center gap-0.5 transition">
                     📞 اتصل الآن
                 </a>
             </div>
@@ -101,15 +101,32 @@
     </div>
 
     <script>
-        // قراءة البيانات من الرابط وتحديث العناصر تلقائياً
         const params = new URLSearchParams(window.location.search);
+        let chaletName = params.get('chalet') || 'شاليه بلقيس';
         
-        if(params.get('chalet')) {
-            let chaletName = params.get('chalet');
-            let icon = chaletName.includes('طلة بحر') ? '🌊' : '🏡';
-            document.getElementById('chaletTitle').innerText = `${icon} ${chaletName}`;
+        // ضبط عنوان الشاليه والأيقونة
+        let icon = chaletName.includes('طلة بحر') ? '🌊' : '🏡';
+        document.getElementById('chaletTitle').innerText = `${icon} ${chaletName}`;
+
+        // إعداد بيانات الحارس والموقع حسب الشاليه
+        let guardName = "صالح";
+        let guardPhone = "0790067196";
+        let mapUrl = "https://maps.app.goo.gl/utgPrY2wvnVhY21a7?g_st=com.google.maps.preview.copy";
+
+        if (chaletName.includes('طلة بحر')) {
+            guardName = "عبد الله";
+            guardPhone = "0781402459";
+            mapUrl = "https://maps.app.goo.gl/YourSeaViewLocation"; // رابط شاليه طلة بحر
         }
-        
+
+        document.getElementById('guardNameText').innerText = `🛡️ الحارس (${guardName})`;
+        document.getElementById('guardPhoneLink').innerText = guardPhone;
+        document.getElementById('guardPhoneLink').href = `tel:${guardPhone}`;
+        document.getElementById('callLink').href = `tel:${guardPhone}`;
+        document.getElementById('whatsappLink').href = `https://wa.me/962${guardPhone.replace(/^0/, '')}`;
+        document.getElementById('mapLink').href = mapUrl;
+
+        // تعبئة بيانات الحجز
         if(params.get('name')) document.getElementById('guestName').innerText = params.get('name');
         if(params.get('in')) document.getElementById('checkIn').innerText = params.get('in');
         if(params.get('out')) document.getElementById('checkOut').innerText = params.get('out');
