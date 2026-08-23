@@ -82,6 +82,17 @@
             <p>قيمة التأمين 50 د.أ مستردة بالكامل عند تسليم الشاليه في الوقت المتفق عليه دون إحداث ضرر بالمرافق، والتأمين **غير مسترد** في حال وجود أضرار.</p>
         </div>
 
+        <!-- ملاحظات مهمة مختصرة -->
+        <div class="bg-amber-50 border border-amber-200/60 p-3 rounded-2xl text-[11px] text-amber-900 space-y-1.5">
+            <p class="font-black text-amber-950">📌 ملاحظات مهمة:</p>
+            <ul class="space-y-1 list-disc list-inside text-amber-900/90 font-bold">
+                <li>العدد: الالتزام بالعدد المتفق عليه (يخصم 5 د.أ من التأمين عن كل شخص إضافي فوق 7 سنوات).</li>
+                <li>الحجز الصباحي: (10 ص - 8 م) الطابق الثاني مغلق.</li>
+                <li>النظافة: المحافظة على نظافة المكان وتسليمه كما تم استلامه.</li>
+                <li>التأخير: الالتزام بموعد المغادرة، وفي حال التأخير يخصم مبلغ تقديري من التأمين.</li>
+            </ul>
+        </div>
+
         <!-- معلومات الحارس والتواصل -->
         <div class="border border-slate-200 p-4 rounded-2xl space-y-3 bg-white shadow-sm">
             <div class="flex justify-between items-center">
@@ -159,7 +170,6 @@
         if (chaletName.includes('طلة بحر')) {
             guardName = "عبد الله";
             guardPhone = "0781402459";
-            // تم اعتماد رابط شاليه طلة بحر الجديد الذي أرسلته
             mapUrl = "https://maps.app.goo.gl/kebrUbdfPYeU9dpL7?g_st=ic5";
         }
 
