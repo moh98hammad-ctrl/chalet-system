@@ -64,6 +64,13 @@
             </div>
         </div>
 
+        <!-- زر خدمة توصيل الجديد -->
+        <div>
+            <button onclick="openDeliveryModal()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-2xl text-xs md:text-sm shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95">
+                🚐 خدمة توصيل
+            </button>
+        </div>
+
         <!-- ملاحظة العربون -->
         <div class="bg-amber-50 border border-amber-200/60 p-3 rounded-2xl text-[11px] text-amber-800 text-center font-bold">
             ⚠️ ملاحظة: العربون المدفوع غير مسترد في حال إلغاء أو التأجيل.
@@ -75,7 +82,7 @@
             <p>قيمة التأمين 50 د.أ مستردة بالكامل عند تسليم الشاليه في الوقت المتفق عليه دون إحداث ضرر بالمرافق، والتأمين **غير مسترد** في حال وجود أضرار.</p>
         </div>
 
-        <!-- معلومات الحارس والتواصل (تتغير تلقائياً حسب الشاليه) -->
+        <!-- معلومات الحارس والتواصل -->
         <div class="border border-slate-200 p-4 rounded-2xl space-y-3 bg-white shadow-sm">
             <div class="flex justify-between items-center">
                 <span id="guardNameText" class="text-xs font-bold text-slate-700">🛡️ الحارس (صالح)</span>
@@ -100,15 +107,51 @@
         </div>
     </div>
 
+    <!-- نافذة خدمة التوصيل (Modal) -->
+    <div id="deliveryModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl border border-purple-100 text-right">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-black text-purple-700 text-sm flex items-center gap-1.5">🚐 طلب خدمة توصيل</h3>
+                <button onclick="closeDeliveryModal()" class="text-slate-400 hover:text-red-500 font-bold text-base px-2">✕</button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-500 font-bold mb-1">📅 موعد الحجز (التاريخ واليوم):</label>
+                    <input type="text" id="delDate" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-slate-800 font-bold">
+                </div>
+
+                <div>
+                    <label class="block text-slate-500 font-bold mb-1">📍 موقع الانطلاق (مكان التوصيل):</label>
+                    <input type="text" id="delLocation" placeholder="مثال: عمان، عبدون، قرب..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800">
+                </div>
+
+                <div>
+                    <label class="block text-slate-500 font-bold mb-1">⏰ وقت الانطلاق المطلوب:</label>
+                    <input type="time" id="delTime" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 font-bold">
+                </div>
+
+                <div>
+                    <label class="block text-slate-500 font-bold mb-1">👥 العدد المطلوب للتوصيل:</label>
+                    <input type="number" id="delCount" placeholder="عدد الأشخاص" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 font-bold">
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button onclick="sendDeliveryWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-2xl text-xs shadow-lg transition flex items-center justify-center gap-1.5">
+                    💬 إرسال الطلب عبر الواتساب
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const params = new URLSearchParams(window.location.search);
         let chaletName = params.get('chalet') || 'شاليه بلقيس';
         
-        // ضبط عنوان الشاليه والأيقونة
         let icon = chaletName.includes('طلة بحر') ? '🌊' : '🏡';
         document.getElementById('chaletTitle').innerText = `${icon} ${chaletName}`;
 
-        // إعداد بيانات الحارس والموقع حسب الشاليه
         let guardName = "صالح";
         let guardPhone = "0790067196";
         let mapUrl = "https://maps.app.goo.gl/utgPrY2wvnVhY21a7?g_st=com.google.maps.preview.copy";
@@ -116,7 +159,7 @@
         if (chaletName.includes('طلة بحر')) {
             guardName = "عبد الله";
             guardPhone = "0781402459";
-            mapUrl = "https://maps.app.goo.gl/YourSeaViewLocation"; // رابط شاليه طلة بحر
+            mapUrl = "https://maps.app.goo.gl/YourSeaViewLocation";
         }
 
         document.getElementById('guardNameText').innerText = `🛡️ الحارس (${guardName})`;
@@ -126,11 +169,15 @@
         document.getElementById('whatsappLink').href = `https://wa.me/962${guardPhone.replace(/^0/, '')}`;
         document.getElementById('mapLink').href = mapUrl;
 
-        // تعبئة بيانات الحجز
-        if(params.get('name')) document.getElementById('guestName').innerText = params.get('name');
-        if(params.get('in')) document.getElementById('checkIn').innerText = params.get('in');
-        if(params.get('out')) document.getElementById('checkOut').innerText = params.get('out');
-        if(params.get('guests')) document.getElementById('guestCount').innerText = params.get('guests');
+        let guestNameVal = params.get('name') || 'غير محدد';
+        let checkInVal = params.get('in') || 'غير محدد';
+        let checkOutVal = params.get('out') || 'غير محدد';
+        let guestsVal = params.get('guests') || 'غير محدد';
+
+        if(params.get('name')) document.getElementById('guestName').innerText = guestNameVal;
+        if(params.get('in')) document.getElementById('checkIn').innerText = checkInVal;
+        if(params.get('out')) document.getElementById('checkOut').innerText = checkOutVal;
+        if(params.get('guests')) document.getElementById('guestCount').innerText = guestsVal;
         
         let total = parseFloat(params.get('total')) || 0;
         let paid = parseFloat(params.get('paid')) || 0;
@@ -139,6 +186,42 @@
         document.getElementById('totalPrice').innerText = total + ' د.أ';
         document.getElementById('paidAmount').innerText = paid + ' د.أ';
         document.getElementById('remainingAmount').innerText = rem + ' د.أ';
+
+    // دوال نافذة خدمة التوصيل
+    window.openDeliveryModal = function() {
+        document.getElementById('delDate').value = checkInVal;
+        document.getElementById('delCount').value = guestsVal !== 'غير محدد' ? guestsVal : '';
+        document.getElementById('deliveryModal').classList.remove('hidden');
+    }
+
+    window.closeDeliveryModal = function() {
+        document.getElementById('deliveryModal').classList.add('hidden');
+    }
+
+    window.sendDeliveryWhatsApp = function() {
+        let location = document.getElementById('delLocation').value.trim();
+        let time = document.getElementById('delTime').value.trim();
+        let count = document.getElementById('delCount').value.trim();
+
+        if (!location || !time || !count) {
+            alert('الرجاء تعبئة جميع الحقول (موقع الانطلاق، الوقت، والعدد)!');
+            return;
+        }
+
+        let message = `🚐 *طلب خدمة توصيل جديدة*\n\n` +
+                      `🏡 الشاليه: ${chaletName}\n` +
+                      `👤 اسم الزبون: ${guestNameVal}\n` +
+                      `📅 موعد الحجز: ${checkInVal}\n` +
+                      `📍 موقع الانطلاق: ${location}\n` +
+                      `⏰ وقت الانطلاق: ${time}\n` +
+                      `👥 العدد: ${count} أشخاص`;
+
+        let ownerWhatsAppNumber = "962791950490";
+        let url = `https://api.whatsapp.com/send?phone=${ownerWhatsAppNumber}&text=${encodeURIComponent(message)}`;
+        
+        window.open(url, '_blank');
+        closeDeliveryModal();
+    }
     </script>
 </body>
 </html>
