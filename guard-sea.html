@@ -16,7 +16,6 @@
     <div class="gold-card p-4 rounded-2xl text-center space-y-3 shadow-xl">
         <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (عبد الله) - متابعة الحجوزات</h1>
 
-        <!-- صندوق حجوزات اليوم الواضح -->
         <div class="bg-sky-950/40 p-4 rounded-xl border-2 border-sky-500 space-y-2 text-right shadow-lg">
             <h2 id="todayTitle" class="text-xs font-black text-sky-300">
                 🔥 حجوزات اليوم:
@@ -26,17 +25,14 @@
             </div>
         </div>
 
-        <!-- واجهة اختيار السنة والشهر -->
         <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-sky-600/40 text-xs">
             <button onclick="changeYear(-1)" class="bg-sky-600 text-white font-bold px-3 py-1.5 rounded-lg shadow">◀️ السنة السابقة</button>
             <span id="yearDisplay" class="text-sky-400 font-black text-sm">2026</span>
             <button onclick="changeYear(1)" class="bg-sky-600 text-white font-bold px-3 py-1.5 rounded-lg shadow">السنة القادمة ▶️</button>
         </div>
 
-        <!-- شبكة الأشهر -->
         <div class="grid grid-cols-4 sm:grid-cols-6 gap-1.5 pt-1" id="monthGrid"></div>
 
-        <!-- صندوق تفصيل ذمة الحارس والمجاميع -->
         <div class="bg-slate-950 p-3 rounded-xl border border-sky-500/40 text-right space-y-2 text-xs">
             <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
                 <span class="text-sky-400 font-bold">💵 إجمالي ما استلمه كاش باليد:</span>
@@ -55,7 +51,6 @@
                 <span id="guardCashBalance" class="text-white text-base font-black">0 د.أ</span>
             </div>
 
-            <!-- زر وسند استلام الكاش السريع -->
             <div class="pt-2 border-t border-slate-800 space-y-2">
                 <div class="text-[11px] text-purple-400 font-bold">قبض كاش من الحارس (يوضع كمصروف خصم من ذمته):</div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -66,12 +61,10 @@
         </div>
     </div>
 
-    <!-- قائمة الحجوزات للشهر المحدد فقط -->
     <div id="guardBookingsList" class="space-y-3">
         <div class="text-center text-slate-500 py-10 text-xs">جاري التحميل...</div>
     </div>
 
-    <!-- قسم تسجيل المصاريف الخاصة بالحارس -->
     <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl mt-6">
         <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 تسجيل مصاريف تخص الحارس</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -114,7 +107,7 @@
             return daysArabic[d.getDay()];
         }
 
-        window.changeYear = function(amount)  {
+        window.changeYear = function(amount) {
             currentSelectedYear += amount;
             document.getElementById('yearDisplay').innerText = currentSelectedYear;
             renderMonthGrid();
@@ -214,20 +207,16 @@
                 return chaletMatch && dateMatch;
             });
 
-            // استثناء الرواتب والمصاريف الإدارية الخاصة من بوابة الحارس
+            // استثناء المصاريف الخاصة (isPrivate) التي تضيفها من لوحتك الرئيسية
             const filteredExpenses = allExpenses.filter(e => {
-                let chaletMatch = (e.chalet && e.chalet.trim() === activeChalet);
+                let chaletMatch = (e.chalet === activeChalet);
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
-                
-                let noteLower = (e.note || '').toLowerCase();
-                let isSalaryOrAdmin = noteLower.includes('راتب') || noteLower.includes('إداري') || noteLower.includes('صيانة عامة');
-
-                return chaletMatch && dateMatch && !e.isGuardCollection && !isSalaryOrAdmin;
+                return chaletMatch && dateMatch && !e.isGuardCollection && !e.isPrivate;
             });
 
             const guardCollections = allExpenses.filter(e => {
-                let chaletMatch = (e.chalet && e.chalet.trim() === activeChalet);
+                let chaletMatch = (e.chalet === activeChalet);
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
                 return chaletMatch && dateMatch && e.isGuardCollection;
@@ -395,6 +384,7 @@
                 amount, 
                 chalet: activeChalet, 
                 isGuardCollection: false,
+                isPrivate: false,
                 date: now.toISOString(),
                 formattedDate: `${dateStr} (${dayName}) - ${timeStr}`
             });
@@ -417,6 +407,7 @@
                 amount: amount, 
                 chalet: activeChalet, 
                 isGuardCollection: true, 
+                isPrivate: false,
                 date: now.toISOString(),
                 formattedDate: `${dateStr} (${dayName}) - ${timeStr}`
             });
