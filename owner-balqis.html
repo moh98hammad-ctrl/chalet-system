@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقرير المالي - شاليه بلقيس</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #080c14; color: #f8fafc; font-family: system-ui, sans-serif; }
+        .gold-card { background: #121824; border: 1px solid rgba(217, 119, 6, 0.4); }
+        .gold-text { color: #fbbf24; }
+    </style>
+</head>
+<body class="p-4 md:p-6 min-h-screen space-y-6 max-w-4xl mx-auto">
+
+    <!-- الشريط العلوي مع أزرار المشاركة -->
+    <div class="gold-card p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3 shadow-xl">
+        <div>
+            <h1 class="text-base font-black gold-text">👑 التقرير المالي الشامل - شاليه بلقيس</h1>
+            <p class="text-[11px] text-slate-400">شفافية كاملة للإيرادات والمصاريف وصافي الأرباح (عرض فقط)</p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-xs font-bold">
+            <a href="index.html" class="bg-amber-600 text-white px-3 py-2 rounded-xl shadow transition">📅 لوحة التحكم</a>
+            <button onclick="copyCurrentLink()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-xl shadow transition">🔗 نسخ الرابط</button>
+            <button onclick="shareViaWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl shadow transition">💬 إرسال للواتساب</button>
+        </div>
+    </div>
+
+    <!-- واجهة اختيار السنة والأشهر -->
+    <div class="gold-card p-4 rounded-3xl space-y-4 shadow-xl">
+        <div class="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-amber-600/40 text-xs">
+            <button onclick="changeYear(-1)" class="bg-amber-600 text-white font-bold px-3 py-2 rounded-xl shadow">◀️ السنة السابقة</button>
+            <span id="yearDisplay" class="text-amber-400 font-black text-sm">2026</span>
+            <button onclick="changeYear(1)" class="bg-amber-600 text-white font-bold px-3 py-2 rounded-xl shadow">السنة القادمة ▶️</button>
+        </div>
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 text-center" id="monthGrid"></div>
+    </div>
+
+    <!-- الخلاصة المالية -->
+    <div class="gold-card p-5 rounded-3xl shadow-2xl space-y-4 text-xs">
+        <div class="flex justify-between items-center border-b border-amber-600/30 pb-3 font-bold text-amber-400">
+            <span id="reportTitle">💰 الخلاصة المالية</span>
+        </div>
+        <div class="space-y-2.5 text-slate-300">
+            <div class="flex justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <span>إجمالي المدخولات:</span>
+                <b id="totalIncome" class="text-emerald-400 text-sm">0 د.أ</b>
+            </div>
+            <div class="flex justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <span>إجمالي المصاريف:</span>
+                <b id="totalExpenses" class="text-red-400 text-sm">0 د.أ</b>
+            </div>
+            <div class="flex justify-between bg-slate-950 p-3 rounded-xl border border-amber-500/40">
+                <span class="text-amber-400 font-bold">صافي الربح الكلي:</span>
+                <b id="netProfit" class="text-white text-sm font-black">0 د.أ</b>
+            </div>
+            <div class="flex justify-between bg-slate-950 p-3 rounded-xl border border-sky-500/40">
+                <span class="text-sky-400 font-bold">حصة الإدارة (25%):</span>
+                <b id="managementShare" class="text-sky-300 text-sm">0 د.أ</b>
+            </div>
+            <div class="flex justify-between bg-slate-950 p-3 rounded-xl border border-purple-500/40">
+                <span class="text-purple-400 font-bold">حصة صاحب الشاليه (75%):</span>
+                <b id="ownerShare" class="text-purple-300 text-sm">0 د.أ</b>
+            </div>
+            <div class="flex justify-between bg-slate-950 p-3 rounded-xl border border-emerald-500/40">
+                <span class="text-emerald-400 font-bold">ما وصل صاحب الشاليه مباشرة:</span>
+                <b id="ownerCollectedDirect" class="text-emerald-300 text-sm">0 د.أ</b>
+            </div>
+            <div class="flex justify-between bg-slate-950 p-3.5 rounded-xl border-2 border-amber-500">
+                <span class="text-amber-400 font-bold text-sm">المتبقي لصاحب الشاليه:</span>
+                <b id="ownerRemaining" class="text-amber-300 text-base font-black">0 د.أ</b>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الحجوزات المدفوعة للمالك مباشرة -->
+    <div class="gold-card p-5 rounded-3xl shadow-2xl space-y-3 text-xs">
+        <h2 class="font-bold gold-text text-sm border-b border-amber-600/30 pb-2">👑 حجوزات مسددة مباشرة لصاحب الشاليه</h2>
+        <div id="ownerPaymentsTable" class="space-y-1.5"><span class="text-slate-500 text-[11px]">جاري التحميل...</span></div>
+    </div>
+
+    <!-- جدول المصاريف التفصيلي -->
+    <div class="gold-card p-5 rounded-3xl shadow-2xl space-y-3 text-xs">
+        <h2 class="font-bold gold-text text-sm border-b border-amber-600/30 pb-2">📝 تفاصيل المصاريف المسجلة</h2>
+        <div id="expensesTable" class="space-y-1.5"><span class="text-slate-500 text-[11px]">جاري تحميل المصاريف...</span></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLADHraLGTIqPeG8uTLfYL3N-DveiCG0",
+            authDomain: "chaletweb-a3c4c.firebaseapp.com",
+            projectId: "chaletweb-a3c4c",
+            storageBucket: "chaletweb-a3c4c.firebasestorage.app",
+            messagingSenderId: "500819160699",
+            appId: "1:500819160699:web:fede92cc5eae41de69bcde"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentSelectedYear = 2026;
+        let currentSelectedMonth = 8;
+        let bookings = [];
+        let expenses = [];
+        const monthsNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+        window.changeYear = function(amount) {
+            currentSelectedYear += amount;
+            document.getElementById('yearDisplay').innerText = currentSelectedYear;
+            calculateReport();
+        }
+
+        window.changeMonth = function(mNum) {
+            currentSelectedMonth = mNum;
+            renderMonthGrid();
+            calculateReport();
+        }
+
+        window.renderMonthGrid = function() {
+            const grid = document.getElementById('monthGrid');
+            grid.innerHTML = '';
+            monthsNames.forEach((m, index) => {
+                let mNum = index + 1;
+                let isActive = mNum === currentSelectedMonth;
+                grid.innerHTML += `
+                    <button onclick="changeMonth(${mNum})" 
+                        class="p-2.5 rounded-xl text-xs font-bold transition ${isActive ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'}">
+                        ${m}
+                    </button>`;
+            });
+        }
+
+        window.copyCurrentLink = function() {
+            let url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('✅ تم نسخ رابط التقرير بنجاح!');
+            });
+        }
+
+        window.shareViaWhatsApp = function() {
+            let url = window.location.href;
+            let mName = monthsNames[currentSelectedMonth - 1];
+            let text = `📊 تقرير شاليه بلقيس المالي لشهر ${mName} ${currentSelectedYear}\nيمكنك الاطلاع على التفاصيل من هنا:\n${url}`;
+            let whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        async function loadData() {
+            try {
+                const bSnap = await getDocs(collection(db, "bookings"));
+                bookings = [];
+                bSnap.forEach(d => bookings.push({ id: d.id, ...d.data() }));
+
+                const eSnap = await getDocs(collection(db, "expenses"));
+                expenses = [];
+                eSnap.forEach(d => expenses.push({ id: d.id, ...d.data() }));
+
+                renderMonthGrid();
+                calculateReport();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function calculateReport() {
+            document.getElementById('reportTitle').innerText = `💰 الخلاصة المالية (شاليه بلقيس - شهر ${monthsNames[currentSelectedMonth - 1]} ${currentSelectedYear})`;
+
+            const monthBookings = bookings.filter(b => {
+                let chaletMatch = b.chalet === 'شاليه بلقيس';
+                let dateMatch = b.slots && b.slots.some(s => {
+                    let dParts = s.split('_')[0].split('-'); 
+                    return parseInt(dParts[0]) === currentSelectedYear && parseInt(dParts[1]) === currentSelectedMonth;
+                });
+                return chaletMatch && dateMatch;
+            });
+
+            const monthExpenses = expenses.filter(e => {
+                let chaletMatch = (e.chalet === 'شاليه بلقيس') || (!e.chalet);
+                let d = new Date(e.date);
+                let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
+                return chaletMatch && dateMatch;
+            });
+
+            let totalIncome = monthBookings.reduce((sum, b) => sum + (parseFloat(b.totalPrice) || 0), 0);
+            let totalExp = monthExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            
+            let netProfit = totalIncome - totalExp;
+            if(netProfit < 0) netProfit = 0;
+
+            let managementShare = netProfit * 0.25;
+            let ownerShare = netProfit - managementShare;
+
+            let ownerDirectCollected = monthBookings.reduce((sum, b) => sum + (parseFloat(b.ownerCollected) || 0), 0);
+            let ownerRemaining = ownerShare - ownerDirectCollected;
+            if(ownerRemaining < 0) ownerRemaining = 0;
+
+            document.getElementById('totalIncome').innerText = totalIncome + ' د.أ';
+            document.getElementById('totalExpenses').innerText = totalExp + ' د.أ';
+            document.getElementById('netProfit').innerText = netProfit.toFixed(2) + ' د.أ';
+            document.getElementById('managementShare').innerText = managementShare.toFixed(2) + ' د.أ';
+            document.getElementById('ownerShare').innerText = ownerShare.toFixed(2) + ' د.أ';
+            document.getElementById('ownerCollectedDirect').innerText = ownerDirectCollected.toFixed(2) + ' د.أ';
+            document.getElementById('ownerRemaining').innerText = ownerRemaining.toFixed(2) + ' د.أ';
+
+            const ownerPaymentsContainer = document.getElementById('ownerPaymentsTable');
+            ownerPaymentsContainer.innerHTML = '';
+            let directOwnerBookings = monthBookings.filter(b => (parseFloat(b.ownerCollected) || 0) > 0 || b.paymentStatus === 'owner');
+            if (directOwnerBookings.length === 0) {
+                ownerPaymentsContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد حجوزات مسددة للمالك مباشرة في هذا الشهر.</span>`;
+            } else {
+                directOwnerBookings.forEach(b => {
+                    let collectedVal = parseFloat(b.ownerCollected) || (parseFloat(b.totalPrice) - parseFloat(b.paidAmount));
+                    ownerPaymentsContainer.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
+                            <span class="text-slate-300">👤 <b>${b.guestName}</b></span>
+                            <span class="text-amber-400 font-bold">${collectedVal} د.أ</span>
+                        </div>`;
+                });
+            }
+
+            const expContainer = document.getElementById('expensesTable');
+            expContainer.innerHTML = '';
+            if (monthExpenses.length === 0) {
+                expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة في هذا الشاليه لهذا الشهر.</span>`;
+            } else {
+                monthExpenses.forEach(ex => {
+                    expContainer.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
+                            <span class="text-slate-300">📝 ${ex.note}</span>
+                            <span class="text-red-400 font-bold">${ex.amount} د.أ</span>
+                        </div>`;
+                });
+            }
+        }
+        loadData();
+    </script>
+</body>
+</html>
