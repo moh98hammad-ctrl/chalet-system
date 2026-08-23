@@ -228,14 +228,14 @@
             }
         }
 
-        // دالة لنسخ الرابط الحي والصحيح من الموقع المرفوع
+        // دالة نسخ الرابط النظيف (تأخذ الرابط الأساسي الحالي وتضيف له اسم الشاليه)
         window.copyLink = function(chaletKey) {
             let cleanUrl = window.location.href.split('?')[0];
             let directLink = `${cleanUrl}?chalet=${chaletKey}`;
             
             navigator.clipboard.writeText(directLink).then(() => {
                 let chaletName = chaletKey === 'balqis' ? 'شاليه بلقيس' : 'طلة بحر';
-                alert(`✅ تم نسخ رابط ${chaletName} بنجاح!\nالرابط: ${directLink}\n\nيمكنك إرساله للمالك مباشرة.`);
+                alert(`✅ تم نسخ رابط ${chaletName} بنجاح!\nالرابط: ${directLink}`);
             }).catch(err => {
                 prompt("انسخ الرابط يدوياً:", directLink);
             });
