@@ -18,8 +18,8 @@
 
         <!-- صندوق حجوزات اليوم الواضح -->
         <div class="bg-amber-950/40 p-4 rounded-xl border-2 border-amber-500 space-y-2 text-right shadow-lg">
-            <h2 class="text-xs font-black text-amber-300">
-                🔥 حجوزات اليوم (الأحد 2026/08/23):
+            <h2 id="todayTitle" class="text-xs font-black text-amber-300">
+                🔥 حجوزات اليوم:
             </h2>
             <div id="todayBox" class="space-y-2 text-xs">
                 <p class="text-slate-300">جاري تحميل حجوزات اليوم...</p>
@@ -101,8 +101,8 @@
         const db = getFirestore(app);
 
         let activeChalet = 'شاليه بلقيس';
-        let currentSelectedYear = 2026;
-        let currentSelectedMonth = 8;
+        let currentSelectedYear = new Date().getFullYear();
+        let currentSelectedMonth = new Date().getMonth() + 1;
         let allBookings = [];
         let allExpenses = [];
         const daysArabic = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -165,11 +165,20 @@
         }
 
         function renderGuardView() {
-            // صندوق حجوزات اليوم
             const todayBox = document.getElementById('todayBox');
             todayBox.innerHTML = '';
-            const todayStr = "2026-08-23";
-            const todayBookings = allBookings.filter(b => b.chalet === activeChalet && b.slots && b.slots.some(s => s.includes(todayStr)));
+            
+            const nowLocal = new Date();
+            const yearStr = nowLocal.getFullYear();
+            const monthStr = String(nowLocal.getMonth() + 1).padStart(2, '0');
+            const dayStr = String(nowLocal.getDate()).padStart(2, '0');
+            const todayStr = `${yearStr}-${monthStr}-${dayStr}`;
+            const todayDayName = daysArabic[nowLocal.getDay()];
+
+            document.getElementById('todayTitle').innerText = `🔥 حجوزات اليوم (${todayDayName} ${todayStr}):`;
+
+            // مطابقة مرنة لاسم الشاليه لتجنب أي مشاكل بالمسافات أو الحروف
+            const todayBookings = allBookings.filter(b => b.chalet && b.chalet.trim() === activeChalet && b.slots && b.slots.some(s => s.includes(todayStr)));
 
             if (todayBookings.length === 0) {
                 todayBox.innerHTML = `<p class="text-slate-400">لا توجد حجوزات مسجلة لهذا اليوم.</p>`;
@@ -198,7 +207,7 @@
             container.innerHTML = '';
 
             const filtered = allBookings.filter(b => {
-                let chaletMatch = b.chalet === activeChalet;
+                let chaletMatch = b.chalet && b.chalet.trim() === activeChalet;
                 let dateMatch = b.slots && b.slots.some(s => {
                     let dParts = s.split('_')[0].split('-'); 
                     return parseInt(dParts[0]) === currentSelectedYear && parseInt(dParts[1]) === currentSelectedMonth;
@@ -207,14 +216,14 @@
             });
 
             const filteredExpenses = allExpenses.filter(e => {
-                let chaletMatch = (e.chalet === activeChalet) || (!e.chalet && activeChalet === 'شاليه بلقيس');
+                let chaletMatch = (e.chalet && e.chalet.trim() === activeChalet) || (!e.chalet);
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
                 return chaletMatch && dateMatch && !e.isGuardCollection;
             });
 
             const guardCollections = allExpenses.filter(e => {
-                let chaletMatch = (e.chalet === activeChalet) || (!e.chalet && activeChalet === 'شاليه بلقيس');
+                let chaletMatch = (e.chalet && e.chalet.trim() === activeChalet) || (!e.chalet);
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
                 return chaletMatch && dateMatch && e.isGuardCollection;
@@ -297,7 +306,6 @@
                 allCombinedExpenses.forEach(ex => {
                     let isCollection = ex.isGuardCollection;
                     
-                    // توليد التاريخ واليوم والساعة للبند القديم (إن لم يكن محفوظاً مسبقاً) أو عرض المخزن
                     let displayTime = ex.formattedDate;
                     if (!displayTime && ex.date) {
                         let d = new Date(ex.date);
