@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة الحارس عبد الله - شاليه طلة بحر</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #080c14; color: #f8fafc; font-family: system-ui, sans-serif; }
+        .gold-card { background: #121824; border: 1px solid rgba(217, 119, 6, 0.4); }
+        .gold-text { color: #fbbf24; }
+    </style>
+</head>
+<body class="p-4 md:p-6 max-w-2xl mx-auto min-h-screen space-y-4">
+    
+    <div class="gold-card p-4 rounded-2xl text-center space-y-3 shadow-xl">
+        <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (عبد الله) - شاليه طلة بحر</h1>
+
+        <!-- واجهة اختيار السنة والشهر -->
+        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-amber-600/40 text-xs">
+            <button onclick="changeYear(-1)" class="bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg shadow">◀️ السنة السابقة</button>
+            <span id="yearDisplay" class="text-amber-400 font-black text-sm">2026</span>
+            <button onclick="changeYear(1)" class="bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg shadow">السنة القادمة ▶️</button>
+        </div>
+
+        <!-- شبكة الأشهر -->
+        <div class="grid grid-cols-4 sm:grid-cols-6 gap-1.5 pt-1" id="monthGrid"></div>
+
+        <!-- صندوق تفصيل الذمة والمجاميع -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-sky-500/40 text-right space-y-2 text-xs">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                <span class="text-sky-400 font-bold">💵 إجمالي ما استلمه كاش باليد:</span>
+                <span id="totalCollectedCash" class="text-emerald-400 font-black text-sm">0 د.أ</span>
+            </div>
+            <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                <span class="text-red-400">💸 إجمالي المصاريف المسجلة:</span>
+                <span id="totalExpensesBox" class="text-red-400 font-bold">0 د.أ</span>
+            </div>
+            <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                <span class="text-purple-400 font-bold">📥 إجمالي ما قبضته الإدارة منه:</span>
+                <span id="totalCollectedFromGuardBox" class="text-purple-400 font-bold">0 د.أ</span>
+            </div>
+            <div class="flex justify-between items-center pt-1">
+                <span class="text-amber-400 font-bold">📌 صافي الذمة المتبقية بذمته:</span>
+                <span id="guardCashBalance" class="text-white text-base font-black">0 د.أ</span>
+            </div>
+
+            <!-- زر وسند استلام الكاش السريع -->
+            <div class="pt-2 border-t border-slate-800 space-y-2">
+                <div class="text-[11px] text-purple-400 font-bold">قبض كاش من عبد الله (يوضع كمصروف خصم من ذمته):</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input type="number" id="collectAmount" placeholder="المبلغ المقبوض (د.أ)" class="bg-slate-900 border border-purple-500/50 rounded-xl p-2 text-white text-xs font-bold">
+                    <button onclick="collectCashFromGuard()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded-xl text-xs transition shadow">📥 استلام الكاش وتسجيله</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة الحجوزات للشهر المحدد فقط -->
+    <div id="guardBookingsList" class="space-y-3">
+        <div class="text-center text-slate-500 py-10 text-xs">جاري التحميل...</div>
+    </div>
+
+    <!-- قسم تسجيل المصاريف اليومية -->
+    <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl mt-6">
+        <h2 class="text-xs font-bold gold-text">💸 تسجيل المصاريف وسندات القبض لشاليه طلة بحر</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" id="expenseNote" placeholder="بيان المصروف" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+            <input type="number" id="expenseAmount" placeholder="القيمة (د.أ)" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+        </div>
+        <button onclick="saveExpense()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">💾 حفظ المصروف</button>
+        <div id="expensesList" class="space-y-1.5 pt-2 border-t border-amber-600/20 text-xs">
+            <span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة.</span>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, updateDoc, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLADHraLGTIqPeG8uTLfYL3N-DveiCG0",
+            authDomain: "chaletweb-a3c4c.firebaseapp.com",
+            projectId: "chaletweb-a3c4c",
+            storageBucket: "chaletweb-a3c4c.firebasestorage.app",
+            messagingSenderId: "500819160699",
+            appId: "1:500819160699:web:fede92cc5eae41de69bcde"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const activeChalet = 'شاليه طلة بحر';
+        let currentSelectedYear = 2026;
+        let currentSelectedMonth = 8;
+        let allBookings = [];
+        let allExpenses = [];
+
+        window.changeYear = function(amount) {
+            currentSelectedYear += amount;
+            document.getElementById('yearDisplay').innerText = currentSelectedYear;
+            renderMonthGrid();
+            renderGuardView();
+        }
+
+        window.changeMonth = function(mNum) {
+            currentSelectedMonth = mNum;
+            renderMonthGrid();
+            renderGuardView();
+        }
+
+        window.renderMonthGrid = function() {
+            const grid = document.getElementById('monthGrid');
+            grid.innerHTML = '';
+            const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+            
+            months.forEach((m, index) => {
+                let mNum = index + 1;
+                let isActive = mNum === currentSelectedMonth;
+                grid.innerHTML += `
+                    <button onclick="changeMonth(${mNum})" 
+                        class="p-1.5 rounded-lg text-[11px] font-bold transition ${isActive ? 'bg-amber-600 text-white shadow' : 'bg-slate-900 text-slate-300 border border-slate-800'}">
+                        ${m}
+                    </button>`;
+            });
+        }
+
+        async function loadGuardData() {
+            try {
+                const bookingSnap = await getDocs(collection(db, "bookings"));
+                allBookings = [];
+                bookingSnap.forEach((docSnap) => {
+                    allBookings.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                const expenseSnap = await getDocs(collection(db, "expenses"));
+                allExpenses = [];
+                expenseSnap.forEach((docSnap) => {
+                    allExpenses.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                renderMonthGrid();
+                renderGuardView();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderGuardView() {
+            const container = document.getElementById('guardBookingsList');
+            container.innerHTML = '';
+
+            const filtered = allBookings.filter(b => {
+                let chaletMatch = b.chalet === activeChalet;
+                let dateMatch = b.slots && b.slots.some(s => {
+                    let dParts = s.split('_')[0].split('-'); 
+                    return parseInt(dParts[0]) === currentSelectedYear && parseInt(dParts[1]) === currentSelectedMonth;
+                });
+                return chaletMatch && dateMatch;
+            });
+
+            const filteredExpenses = allExpenses.filter(e => {
+                let chaletMatch = e.chalet === activeChalet;
+                let d = new Date(e.date);
+                let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
+                return chaletMatch && dateMatch && !e.isGuardCollection;
+            });
+
+            const guardCollections = allExpenses.filter(e => {
+                let chaletMatch = e.chalet === activeChalet;
+                let d = new Date(e.date);
+                let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
+                return chaletMatch && dateMatch && e.isGuardCollection;
+            });
+
+            filtered.sort((a, b) => new Date(a.dateCreated) - new Date(b.dateCreated));
+
+            let chaletCollectedCash = filtered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
+            let totalExpenses = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            let totalCollectedFromGuard = guardCollections.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            
+            let netGuardCash = chaletCollectedCash - (totalExpenses + totalCollectedFromGuard);
+            if(netGuardCash < 0) netGuardCash = 0;
+
+            document.getElementById('totalCollectedCash').innerText = chaletCollectedCash + ' د.أ';
+            document.getElementById('totalExpensesBox').innerText = totalExpenses + ' د.أ';
+            document.getElementById('totalCollectedFromGuardBox').innerText = totalCollectedFromGuard + ' د.أ';
+            document.getElementById('guardCashBalance').innerText = netGuardCash + ' د.أ';
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="gold-card p-4 rounded-2xl text-center text-slate-400 text-xs">لا توجد حجوزات في هذا الشاليه لهذا الشهر (${currentSelectedMonth}/${currentSelectedYear})</div>`;
+            } else {
+                filtered.forEach(b => {
+                    const total = parseFloat(b.totalPrice) || 0;
+                    const paid = parseFloat(b.paidAmount) || 0;
+                    const collectedByGuard = parseFloat(b.guardCollected) || 0;
+                    const cliqCollected = parseFloat(b.cliqCollected) || 0;
+                    const ownerCollected = parseFloat(b.ownerCollected) || 0;
+                    
+                    const actualRemaining = total - (paid + collectedByGuard + cliqCollected + ownerCollected);
+
+                    container.innerHTML += `
+                        <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
+                            <div class="flex justify-between items-center border-b border-amber-600/30 pb-2">
+                                <span class="font-black text-white text-sm">👤 ${b.guestName}</span>
+                                <span class="text-amber-400">👥 عدد: ${b.guestCount || 'غير محدد'}</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
+                                <p>📥 الدخول: <b class="text-amber-400">${b.checkInFormatted || 'حسب الشفت'}</b></p>
+                                <p>📤 الخروج: <b class="text-amber-400">${b.checkOutFormatted || 'حسب الشفت'}</b></p>
+                                <p>💰 القيمة الكلية: <b class="text-white">${total} د.أ</b></p>
+                                <p>💵 العربون الأساسي: <b class="text-emerald-400">${paid} د.أ</b></p>
+                                <p>🛡️ مع عبد الله (كاش): <b class="text-sky-400">${collectedByGuard} د.أ</b></p>
+                                <p>💳 تحويل كليك: <b class="text-emerald-300">${cliqCollected} د.أ</b></p>
+                                <p>👑 دفع للمالك: <b class="text-amber-300">${ownerCollected} د.أ</b></p>
+                                <p>⏳ المتبقي للتحصيل: <b class="text-red-400">${actualRemaining > 0 ? actualRemaining : 0} د.أ</b></p>
+                            </div>
+
+                            <div class="bg-slate-900 p-3 rounded-xl border border-amber-600/30 space-y-2 pt-2">
+                                <div class="text-[11px] text-amber-400 font-bold">تسجيل أو تعديل طريقة الدفع:</div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <input type="number" id="amount_${b.id}" placeholder="المبلغ (د.أ)" class="bg-slate-950 border border-slate-700 rounded-xl p-2 text-white text-xs font-bold">
+                                    <select id="method_${b.id}" onchange="onMethodChange('${b.id}')" class="bg-slate-950 border border-amber-500/50 rounded-xl p-2 text-amber-300 font-bold text-xs">
+                                        <option value="guard">محاسبة الحارس (كاش)</option>
+                                        <option value="cliq">تحويل كليك (CliQ)</option>
+                                        <option value="owner">دفعه لصاحب الشاليه مباشرة</option>
+                                    </select>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="updatePayment('${b.id}', 'add')" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-xl shadow transition">➕ إضافة دفعة</button>
+                                    <button onclick="updatePayment('${b.id}', 'set')" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 rounded-xl shadow transition">✏️ تعديل وتثبيت</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            const expContainer = document.getElementById('expensesList');
+            const allCombinedExpenses = [...filteredExpenses, ...guardCollections];
+            if (allCombinedExpenses.length === 0) {
+                expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة.</span>`;
+            } else {
+                expContainer.innerHTML = '';
+                allCombinedExpenses.forEach(ex => {
+                    let isCollection = ex.isGuardCollection;
+                    expContainer.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-950 p-2 rounded-xl border ${isCollection ? 'border-purple-500/40 text-purple-300' : 'border-slate-800 text-slate-300'}">
+                            <span>${isCollection ? '📥 ' : '📝 '} ${ex.note}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="${isCollection ? 'text-purple-400 font-bold' : 'text-red-400 font-bold'}">${ex.amount} د.أ</span>
+                                <button onclick="deleteExpense('${ex.id}')" class="text-red-500 font-black px-2 py-0.5 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white transition">✕</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        window.onMethodChange = function(id) {
+            let b = allBookings.find(x => x.id === id);
+            let method = document.getElementById(`method_${id}`).value;
+            let inputField = document.getElementById(`amount_${id}`);
+            
+            if (method === 'guard') inputField.value = b.guardCollected || '';
+            else if (method === 'cliq') inputField.value = b.cliqCollected || '';
+            else if (method === 'owner') inputField.value = b.ownerCollected || '';
+        }
+
+        window.updatePayment = async function(id, mode) {
+            let amount = parseFloat(document.getElementById(`amount_${id}`).value);
+            let method = document.getElementById(`method_${id}`).value;
+            if (isNaN(amount) || amount < 0) return alert('الرجاء إدخال مبلغ صحيح!');
+
+            let b = allBookings.find(x => x.id === id);
+            let totalPrice = parseFloat(b.totalPrice) || 0;
+            let paid = parseFloat(b.paidAmount) || 0;
+            
+            let g = parseFloat(b.guardCollected) || 0;
+            let c = parseFloat(b.cliqCollected) || 0;
+            let o = parseFloat(b.ownerCollected) || 0;
+
+            let newG = g, newC = c, newO = o;
+
+            if (mode === 'set') {
+                newG = (method === 'guard') ? amount : 0;
+                newC = (method === 'cliq') ? amount : 0;
+                newO = (method === 'owner') ? amount : 0;
+            } else if (mode === 'add') {
+                if (method === 'guard') newG += amount;
+                else if (method === 'cliq') newC += amount;
+                else if (method === 'owner') newO += amount;
+            }
+
+            let totalPaidSoFar = paid + newG + newC + newO;
+            if (totalPaidSoFar > totalPrice) return alert(`❌ خطأ: إجمالي المدفوع (${totalPaidSoFar}) يتجاوز القيمة الكلية (${totalPrice})!`);
+
+            await updateDoc(doc(db, "bookings", id), { guardCollected: newG, cliqCollected: newC, ownerCollected: newO });
+            alert('✅ تم التثبيت بنجاح!');
+            loadGuardData();
+        }
+
+        window.saveExpense = async function() {
+            let note = document.getElementById('expenseNote').value.trim();
+            let amount = parseFloat(document.getElementById('expenseAmount').value);
+            if (!note || isNaN(amount) || amount <= 0) return alert('أدخل بيانات صحيحة');
+            await setDoc(doc(db, "expenses", String(Date.now())), { 
+                note, amount, chalet: activeChalet, isGuardCollection: false,
+                date: new Date(currentSelectedYear, currentSelectedMonth - 1, 15).toISOString() 
+            });
+            document.getElementById('expenseNote').value = '';
+            document.getElementById('expenseAmount').value = '';
+            loadGuardData();
+        }
+
+        window.collectCashFromGuard = async function() {
+            let amount = parseFloat(document.getElementById('collectAmount').value);
+            if (isNaN(amount) || amount <= 0) return alert('أدخل مبلغ صحيح!');
+            await setDoc(doc(db, "expenses", String(Date.now())), { 
+                note: `قبض كاش من الحارس (عبد الله)`, amount: amount, chalet: activeChalet, isGuardCollection: true, 
+                date: new Date(currentSelectedYear, currentSelectedMonth - 1, 15).toISOString() 
+            });
+            document.getElementById('collectAmount').value = '';
+            alert('✅ تم استلام الكاش بنجاح!');
+            loadGuardData();
+        }
+
+        window.deleteExpense = async function(id) {
+            if (confirm('حذف هذا البند؟')) {
+                await deleteDoc(doc(db, "expenses", id));
+                loadGuardData();
+            }
+        }
+
+        loadGuardData();
+    </script>
+</body>
+</html>

@@ -610,4 +610,624 @@
         loadBookings();
     </script>
 </body>
+</html><!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الملكية - الشاليهات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #080c14; color: #f8fafc; font-family: system-ui, sans-serif; }
+        .gold-card { background: #121824; border: 1px solid rgba(217, 119, 6, 0.4); }
+        .gold-text { color: #fbbf24; }
+        .slot-free { background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; }
+        .slot-booked { background-color: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); color: #f87171; }
+    </style>
+</head>
+<body class="p-4 md:p-6 min-h-screen space-y-6">
+
+    <div class="max-w-4xl mx-auto w-full space-y-5">
+        
+        <!-- الشريط العلوي المطور -->
+        <div class="gold-card p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3 shadow-xl">
+            <div>
+                <h1 class="text-base font-black gold-text">👑 لوحة التحكم الملكية</h1>
+                <p class="text-[11px] text-slate-400">مرحباً بك، <span id="userNameDisplay" class="text-white font-bold"></span></p>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs font-bold">
+                <a href="index.html" class="bg-amber-600 text-white px-3 py-2 rounded-xl shadow transition flex items-center gap-1">📅 الحجوزات</a>
+                <a href="guard-saleh.html" id="guardLinkBtn" target="_blank" class="bg-sky-500/20 text-sky-300 px-3 py-2 rounded-xl border border-sky-500/30 transition flex items-center gap-1">🛡️ صفحة الحارس (صالح)</a>
+                <a href="owner-report.html" target="_blank" class="bg-emerald-500/20 text-emerald-300 px-3 py-2 rounded-xl border border-emerald-500/30 transition flex items-center gap-1">📊 التقرير المالي</a>
+                <a href="annual-report.html" target="_blank" class="bg-purple-500/20 text-purple-300 px-3 py-2 rounded-xl border border-purple-500/30 transition flex items-center gap-1">📈 الأرشيف السنوي</a>
+                <button onclick="logout()" class="bg-red-500/20 text-red-400 px-3 py-2 rounded-xl border border-red-500/30 transition flex items-center gap-1">🚪 خروج</button>
+            </div>
+        </div>
+
+        <!-- اختيار الشاليه -->
+        <div class="flex gap-2 text-xs">
+            <button onclick="filterChalet('شاليه بلقيس')" id="btn-c1" class="chalet-btn bg-amber-600 text-white font-extrabold px-5 py-2.5 rounded-2xl shadow whitespace-nowrap">👑 شاليه بلقيس</button>
+            <button onclick="filterChalet('شاليه طلة بحر')" id="btn-c2" class="chalet-btn bg-slate-900 text-slate-300 font-bold px-4 py-2.5 rounded-2xl border border-slate-700 whitespace-nowrap">🌊 شاليه طلة بحر</button>
+        </div>
+
+        <!-- واجهة اختيار السنة والأشهر -->
+        <div class="gold-card p-4 rounded-3xl space-y-4 shadow-xl">
+            <div class="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-amber-600/40">
+                <button onclick="changeYear(-1)" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2 rounded-xl transition shadow text-sm">◀️ السنة السابقة</button>
+                <span id="yearDisplay" class="text-amber-400 font-black text-base">2026</span>
+                <button onclick="changeYear(1)" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2 rounded-xl transition shadow text-sm">السنة القادمة ▶️</button>
+            </div>
+
+            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 text-center" id="monthGrid"></div>
+        </div>
+
+        <!-- صندوق ملخص الإيرادات والمصاريف الشهري -->
+        <div class="gold-card p-4 rounded-3xl shadow-2xl space-y-3">
+            <div class="flex justify-between items-center text-xs text-amber-400 font-bold border-b border-amber-600/30 pb-2">
+                <span>📊 ملخص إيرادات هذا الشهر (<span id="summaryMonthName">أغسطس</span> <span id="summaryYearText">2026</span>)</span>
+                <span id="summaryChaletName" class="text-white">شاليه بلقيس</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-300 pt-1">
+                <div class="bg-slate-950 p-2.5 rounded-xl border border-sky-500/30">
+                    <p class="text-sky-400">💵 المحصل كاش (مع الحارس):</p>
+                    <b id="indexGuardCash" class="text-white text-sm">0 د.أ</b>
+                </div>
+                <div class="bg-slate-950 p-2.5 rounded-xl border border-purple-500/30">
+                    <p class="text-purple-400">📥 ما معي باليد (عربون + قبض):</p>
+                    <b id="indexMyPocketCash" class="text-white text-sm">0 د.أ</b>
+                </div>
+                <div class="bg-slate-950 p-2.5 rounded-xl border border-red-500/30">
+                    <p class="text-red-400">💸 إجمالي المصاريف:</p>
+                    <b id="indexExpenses" class="text-white text-sm">0 د.أ</b>
+                </div>
+                <div class="bg-slate-950 p-2.5 rounded-xl border border-amber-500/30">
+                    <p class="text-amber-400">⏳ عربونات هذا الشهر:</p>
+                    <b id="indexFutureDeposits" class="text-white text-sm">0 د.أ</b>
+                </div>
+            </div>
+
+            <!-- تفصيل العربونات المستقبلية لكل شهر على حدة -->
+            <div class="mt-3 pt-3 border-t border-amber-600/30 space-y-2">
+                <p class="text-xs font-bold text-amber-400">📅 تفصيل العربونات المستقبلية (موزعة حسب كل شهر):</p>
+                <div id="monthlyDepositsBreakdown" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-xs">
+                    <!-- سيتم تعبئتها برمجياً -->
+                </div>
+            </div>
+        </div>
+
+        <!-- التقويم -->
+        <div class="gold-card p-4 rounded-3xl shadow-2xl space-y-3">
+            <div class="flex justify-between items-center text-xs text-amber-400/90 border-b border-amber-600/30 pb-2 font-bold">
+                <span id="calendarTitle">تقويم الحجوزات</span>
+                <span>اختر الشفت للحجز المباشر</span>
+            </div>
+            <div id="daysGrid" class="space-y-2"></div>
+        </div>
+
+        <!-- قائمة الحجوزات المثبتة -->
+        <div class="space-y-3 pt-2">
+            <h2 class="text-sm font-bold gold-text flex items-center gap-1.5">
+                📋 قائمة الحجوزات المثبتة (مرتبة حسب التاريخ)
+            </h2>
+            <div id="confirmedBookingsList" class="space-y-3"></div>
+        </div>
+
+    </div>
+
+    <!-- نافذة إضافة وتعديل الحجز -->
+    <div id="bookingModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden justify-center items-center p-4 z-50">
+        <div class="gold-card w-full max-w-lg p-6 rounded-3xl shadow-2xl space-y-4 text-right overflow-y-auto max-h-[90vh]">
+            <div class="flex justify-between items-center border-b border-amber-600/30 pb-3">
+                <h2 id="modalTitle" class="text-base font-bold gold-text">إضافة حجز جديد</h2>
+                <button onclick="closeModal()" class="text-slate-400 font-bold">✕</button>
+            </div>
+
+            <form id="bookingForm" onsubmit="saveBooking(event)" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div>
+                    <label class="block text-slate-300 mb-1">اسم الزبون</label>
+                    <input type="text" id="guestName" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">رقم هاتف الزبون</label>
+                    <input type="text" id="guestPhone" placeholder="07xxxxxxxx" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                </div>
+                <div>
+                    <label class="block text-amber-400 font-bold mb-1">عدد الأشخاص 👥</label>
+                    <input type="number" id="guestCount" placeholder="مثال: 10" required class="w-full bg-slate-900 border border-amber-500/50 rounded-xl p-2.5 text-white font-bold">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">الشاليه</label>
+                    <input type="text" id="chalet" readonly class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-amber-400 font-bold">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-amber-400 font-bold mb-1">نوع مدة الحجز ⏰</label>
+                    <select id="bookingDuration" class="w-full bg-slate-900 border border-amber-500/50 rounded-xl p-2.5 text-amber-300 font-bold">
+                        <option value="single">شفت واحد فقط (صباحي أو مسائي)</option>
+                        <option value="24_night">24 ساعة (من مسائي اليوم ⬅️ صباحي الغد)</option>
+                        <option value="24_morning">24 ساعة (من صباحي اليوم ⬅️ مسائي اليوم)</option>
+                        <option value="48_hours">48 ساعة (يومين كاملين)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 mb-1">المبلغ الإجمالي (د.أ)</label>
+                    <input type="number" id="totalPrice" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">العربون المدفوع (د.أ)</label>
+                    <input type="number" id="paidAmount" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-amber-400 font-bold mb-1">طريقة/حالة محاسبة المتبقي عند الوصول 💵</label>
+                    <select id="paymentStatus" class="w-full bg-slate-900 border border-amber-500/50 rounded-xl p-2.5 text-amber-300 font-bold">
+                        <option value="guard">1- محاسبة الحارس (كاش)</option>
+                        <option value="cliq">2- تحويل كليك (CliQ)</option>
+                        <option value="owner">3- محاسبة صاحب الشاليه مباشرة</option>
+                        <option value="hospitality">4- ضيافة (مجاني)</option>
+                        <option value="later">5- آجل (الدفع بعد فترة)</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-slate-300 mb-1">ملاحظات الحجز (اختياري)</label>
+                    <textarea id="bookingNotes" rows="2" placeholder="اكتب ملاحظات أو اتفاقيات خاصة..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white"></textarea>
+                </div>
+
+                <div class="md:col-span-2 pt-2 flex gap-2">
+                    <button type="submit" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-2xl shadow-lg">💾 تثبيت الحجز بالسحابة</button>
+                    <button type="button" id="deleteBtn" onclick="deleteBooking()" class="hidden bg-red-500/20 text-red-400 font-bold px-3 py-3 rounded-2xl border border-red-500/30">🗑️ حذف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLADHraLGTIqPeG8uTLfYL3N-DveiCG0",
+            authDomain: "chaletweb-a3c4c.firebaseapp.com",
+            projectId: "chaletweb-a3c4c",
+            storageBucket: "chaletweb-a3c4c.firebasestorage.app",
+            messagingSenderId: "500819160699",
+            appId: "1:500819160699:web:fede92cc5eae41de69bcde",
+            measurementId: "G-8HZM9GJ54P"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        if (localStorage.getItem('chaletLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+        document.getElementById('userNameDisplay').innerText = localStorage.getItem('chaletUser') || 'مدير النظام';
+
+        let currentChalet = 'شاليه بلقيس';
+        let currentSelectedYear = 2026;
+        let currentSelectedMonth = 8;
+        let bookings = [];
+        let allExpenses = [];
+        let activeSelectedDate = '';
+        let activeSelectedShift = '';
+        let currentEditDocId = null;
+
+        const daysArabic = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+        const monthsNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+        window.filterChalet = function(chalet) {
+            currentChalet = chalet;
+            document.getElementById('btn-c1').className = chalet === 'شاليه بلقيس' ? 'chalet-btn bg-amber-600 text-white font-extrabold px-5 py-2.5 rounded-2xl shadow whitespace-nowrap' : 'chalet-btn bg-slate-900 text-slate-300 font-bold px-4 py-2.5 rounded-2xl border border-slate-700 whitespace-nowrap';
+            document.getElementById('btn-c2').className = chalet === 'شاليه طلة بحر' ? 'chalet-btn bg-amber-600 text-white font-extrabold px-5 py-2.5 rounded-2xl shadow whitespace-nowrap' : 'chalet-btn bg-slate-900 text-slate-300 font-bold px-4 py-2.5 rounded-2xl border border-slate-700 whitespace-nowrap';
+            
+            // تغيير رابط وعنوان زر صفحة الحارس تلقائياً بحسب الشاليه
+            let guardBtn = document.getElementById('guardLinkBtn');
+            if (chalet === 'شاليه بلقيس') {
+                guardBtn.href = 'guard-saleh.html';
+                guardBtn.innerHTML = '🛡️ صفحة الحارس (صالح)';
+            } else {
+                guardBtn.href = 'guard-sea.html';
+                guardBtn.innerHTML = '🛡️ صفحة الحارس (عبد الله)';
+            }
+
+            renderCalendarGrid();
+            renderConfirmedList();
+            updateMonthlySummary();
+        }
+
+        window.changeYear = function(amount) {
+            currentSelectedYear += amount;
+            document.getElementById('yearDisplay').innerText = currentSelectedYear;
+            renderMonthGrid();
+            renderCalendarGrid();
+            renderConfirmedList();
+            updateMonthlySummary();
+        }
+
+        window.changeMonth = function(monthNum) {
+            currentSelectedMonth = monthNum;
+            renderMonthGrid();
+            renderCalendarGrid();
+            renderConfirmedList();
+            updateMonthlySummary();
+        }
+
+        window.renderMonthGrid = function() {
+            const grid = document.getElementById('monthGrid');
+            grid.innerHTML = '';
+            const months = ['يناير (1)', 'فبراير (2)', 'مارس (3)', 'أبريل (4)', 'مايو (5)', 'يونيو (6)', 'يوليو (7)', 'أغسطس (8)', 'سبتمبر (9)', 'أكتوبر (10)', 'نوفمبر (11)', 'ديسمبر (12)'];
+            
+            months.forEach((m, index) => {
+                let mNum = index + 1;
+                let isActive = mNum === currentSelectedMonth;
+                grid.innerHTML += `
+                    <button onclick="changeMonth(${mNum})" 
+                        class="p-2.5 rounded-xl text-xs font-bold transition ${isActive ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'}">
+                        ${m}
+                    </button>`;
+            });
+            document.getElementById('calendarTitle').innerText = `تقويم الحجوزات (سنة ${currentSelectedYear} - شهر ${currentSelectedMonth})`;
+            document.getElementById('summaryMonthName').innerText = monthsNames[currentSelectedMonth - 1];
+            document.getElementById('summaryYearText').innerText = currentSelectedYear;
+        }
+
+        async function loadBookings() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "bookings"));
+                bookings = [];
+                querySnapshot.forEach((docSnap) => {
+                    bookings.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                const expenseSnap = await getDocs(collection(db, "expenses"));
+                allExpenses = [];
+                expenseSnap.forEach((docSnap) => {
+                    allExpenses.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                renderMonthGrid();
+                renderCalendarGrid();
+                renderConfirmedList();
+                updateMonthlySummary();
+            } catch (e) {
+                console.error("Error loading bookings: ", e);
+            }
+        }
+
+        function updateMonthlySummary() {
+            const monthFiltered = bookings.filter(b => {
+                let chaletMatch = b.chalet === currentChalet;
+                let dateMatch = b.slots && b.slots.some(s => {
+                    let dParts = s.split('_')[0].split('-'); 
+                    return parseInt(dParts[0]) === currentSelectedYear && parseInt(dParts[1]) === currentSelectedMonth;
+                });
+                return chaletMatch && dateMatch;
+            });
+
+            const filteredExpenses = allExpenses.filter(e => {
+                let chaletMatch = (e.chalet === currentChalet) || (!e.chalet && currentChalet === 'شاليه بلقيس');
+                let d = new Date(e.date);
+                let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
+                return chaletMatch && dateMatch && !e.isGuardCollection;
+            });
+
+            const guardCollections = allExpenses.filter(e => {
+                let chaletMatch = (e.chalet === currentChalet) || (!e.chalet && currentChalet === 'شاليه بلقيس');
+                let d = new Date(e.date);
+                let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
+                return chaletMatch && dateMatch && e.isGuardCollection;
+            });
+
+            let totalGuardCash = monthFiltered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
+            let totalExpenses = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            let totalCollectedFromGuard = guardCollections.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            let currentMonthDeposits = monthFiltered.reduce((sum, b) => sum + (parseFloat(b.paidAmount) || 0), 0);
+
+            let totalInMyPocket = currentMonthDeposits + totalCollectedFromGuard;
+
+            document.getElementById('indexGuardCash').innerText = totalGuardCash + ' د.أ';
+            document.getElementById('indexMyPocketCash').innerText = totalInMyPocket + ' د.أ';
+            document.getElementById('indexExpenses').innerText = totalExpenses + ' د.أ';
+            document.getElementById('indexFutureDeposits').innerText = currentMonthDeposits + ' د.أ';
+            document.getElementById('summaryChaletName').innerText = currentChalet;
+
+            const breakdownContainer = document.getElementById('monthlyDepositsBreakdown');
+            breakdownContainer.innerHTML = '';
+
+            for (let m = 1; m <= 12; m++) {
+                let mBookings = bookings.filter(b => {
+                    let chaletMatch = b.chalet === currentChalet;
+                    let dateMatch = b.slots && b.slots.some(s => {
+                        let dParts = s.split('_')[0].split('-'); 
+                        return parseInt(dParts[0]) === currentSelectedYear && parseInt(dParts[1]) === m;
+                    });
+                    return chaletMatch && dateMatch;
+                });
+
+                let mTotalDeposit = mBookings.reduce((sum, b) => sum + (parseFloat(b.paidAmount) || 0), 0);
+                let isCurrent = m === currentSelectedMonth;
+
+                breakdownContainer.innerHTML += `
+                    <div class="bg-slate-950 p-2 rounded-xl border ${isCurrent ? 'border-amber-500 bg-amber-950/20' : 'border-slate-800'} flex flex-col justify-between">
+                        <span class="text-slate-400 font-bold">${monthsNames[m - 1]}</span>
+                        <span class="text-amber-300 font-black text-sm">${mTotalDeposit} د.أ</span>
+                    </div>
+                `;
+            }
+        }
+
+        window.renderCalendarGrid = function() {
+            const container = document.getElementById('daysGrid');
+            container.innerHTML = '';
+
+            let date = new Date(currentSelectedYear, currentSelectedMonth - 1, 1);
+            
+            while (date.getMonth() === currentSelectedMonth - 1) {
+                let dateStr = date.toISOString().split('T')[0];
+                let dayName = daysArabic[date.getDay()];
+                let formattedDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+
+                let morningBooking = getShiftStatus(dateStr, 'morning');
+                let nightBooking = getShiftStatus(dateStr, 'night');
+
+                container.innerHTML += `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-900/80 border border-amber-600/20 gap-2">
+                        <div class="font-bold text-slate-200 text-xs sm:text-sm">
+                            <span class="gold-text font-black">${dayName}</span> 
+                            <span class="text-slate-400 text-xs">(${formattedDate})</span>
+                        </div>
+                        
+                        <div class="flex gap-2 text-xs">
+                            <button onclick="handleSlotClick('${dateStr}', 'morning')" class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl font-bold ${morningBooking ? 'slot-booked' : 'slot-free'}">
+                                ☀️ صباحي: ${morningBooking ? '🔒 ' + morningBooking.guestName : 'متاح +'}
+                            </button>
+
+                            <button onclick="handleSlotClick('${dateStr}', 'night')" class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl font-bold ${nightBooking ? 'slot-booked' : 'slot-free'}">
+                                🌙 مسائي: ${nightBooking ? '🔒 ' + nightBooking.guestName : 'متاح +'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+                date.setDate(date.getDate() + 1);
+            }
+        }
+
+        window.renderConfirmedList = function() {
+            const container = document.getElementById('confirmedBookingsList');
+            container.innerHTML = '';
+
+            const filtered = bookings.filter(b => {
+                let chaletMatch = b.chalet === currentChalet;
+                let dateMatch = b.slots && b.slots.some(s => {
+                    let dParts = s.split('_')[0].split('-'); 
+                    return parseInt(dParts[0]) === currentSelectedYear && parseInt(dParts[1]) === currentSelectedMonth;
+                });
+                return chaletMatch && dateMatch;
+            });
+
+            filtered.sort((a, b) => new Date(a.dateCreated) - new Date(b.dateCreated));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="gold-card p-4 rounded-2xl text-center text-slate-400 text-xs">لا توجد حجوزات مثبتة لهذا الشاليه في سنة ${currentSelectedYear} - شهر ${currentSelectedMonth}</div>`;
+                return;
+            }
+
+            const paymentLabels = {
+                'guard': '🛡️ محاسبة الحارس',
+                'cliq': '💳 تحويل كليك',
+                'owner': '👑 دفع لصاحب الشاليه',
+                'hospitality': '🎁 ضيافة',
+                'later': '⏳ آجل (دفع لاحق)'
+            };
+
+            filtered.forEach((b) => {
+                const rem = (parseFloat(b.totalPrice) || 0) - (parseFloat(b.paidAmount) || 0);
+                const checkInText = b.checkInFormatted || 'حسب الشفت';
+                const checkOutText = b.checkOutFormatted || 'حسب الشفت';
+                const phoneText = b.phone || '';
+                const guestCountText = b.guestCount || 'غير محدد';
+                const pStatusText = paymentLabels[b.paymentStatus] || 'غير محدد';
+                
+                let notesSection = b.notes ? `<p class="md:col-span-2 text-amber-300/90 bg-slate-950 p-2 rounded-xl border border-amber-600/20">📝 ملاحظات: ${b.notes}</p>` : '';
+
+                let receiptUrl = `https://moh98hammad-ctrl.github.io/chalet-system/receipt.html?chalet=${encodeURIComponent(b.chalet)}&name=${encodeURIComponent(b.guestName)}&phone=${encodeURIComponent(phoneText)}&type=${encodeURIComponent('حجز_شاليه')}&in=${encodeURIComponent(checkInText)}&out=${encodeURIComponent(checkOutText)}&guests=${encodeURIComponent(guestCountText)}&total=${b.totalPrice}&paid=${b.paidAmount}&rem=${rem}`;
+
+                container.innerHTML += `
+                    <div class="gold-card p-4 rounded-2xl space-y-3 text-xs shadow-xl">
+                        <div class="flex justify-between items-center border-b border-amber-600/30 pb-2">
+                            <span class="font-black text-white text-sm">👤 ${b.guestName} <span class="text-emerald-400 font-normal">(${phoneText || 'بدون رقم'})</span></span>
+                            <span class="bg-amber-500/20 text-amber-400 px-3 py-0.5 rounded-full border border-amber-500/30 font-bold">${b.chalet}</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-slate-300">
+                            <p>📥 الدخول: <b class="text-amber-400">${checkInText}</b></p>
+                            <p>📤 الخروج: <b class="text-amber-400">${checkOutText}</b></p>
+                            <p>👥 عدد الأشخاص: <b class="text-amber-300">${guestCountText}</b></p>
+                            <p>💰 الإجمالي: <b class="text-white">${b.totalPrice} د.أ</b> | العربون: <b class="text-emerald-400">${b.paidAmount} د.أ</b></p>
+                            <p>⏳ المتبقي: <b class="text-amber-400">${rem} د.أ</b> | المحاسبة: <b class="text-sky-400">${pStatusText}</b></p>
+                            ${notesSection}
+                        </div>
+
+                        <div class="flex flex-col gap-2 pt-2 border-t border-amber-600/20">
+                            <button onclick="navigator.clipboard.writeText('${receiptUrl}').then(() => alert('✅ تم نسخ رابط تفاصيل الحجز للزبون!'))" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-center shadow">
+                                🔗 نسخ رابط تفاصيل الحجز للزبون
+                            </button>
+                            <div class="flex gap-2">
+                                <button onclick="openModalForEdit('${b.id}')" class="flex-1 bg-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-white font-bold py-2.5 rounded-xl border border-sky-500/30 transition text-center">
+                                    ✏️ تعديل الحجز
+                                </button>
+                                <button onclick="deleteBookingExplicit('${b.id}')" class="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white font-bold px-4 py-2.5 rounded-xl border border-red-500/30 transition">
+                                    🗑️ حذف
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function getShiftStatus(dateStr, shift) {
+            return bookings.find(b => b.chalet === currentChalet && b.slots && b.slots.includes(`${dateStr}_${shift}`));
+        }
+
+        window.handleSlotClick = function(dateStr, shift) {
+            let existing = getShiftStatus(dateStr, shift);
+            if (existing) {
+                openModalForEdit(existing.id);
+            } else {
+                openModalForNew(dateStr, shift);
+            }
+        }
+
+        function openModalForNew(dateStr, shift) {
+            currentEditDocId = null;
+            activeSelectedDate = dateStr;
+            activeSelectedShift = shift;
+
+            document.getElementById('modalTitle').innerText = `إضافة حجز جديد - ${currentChalet}`;
+            document.getElementById('bookingForm').reset();
+            document.getElementById('chalet').value = currentChalet;
+            document.getElementById('deleteBtn').classList.add('hidden');
+            document.getElementById('bookingModal').classList.remove('hidden');
+            document.getElementById('bookingModal').classList.add('flex');
+        }
+
+        window.openModalForEdit = function(id) {
+            currentEditDocId = id;
+            let b = bookings.find(item => item.id === id);
+            if (!b) return;
+
+            document.getElementById('modalTitle').innerText = `تعديل حجز: ${b.guestName}`;
+            document.getElementById('guestName').value = b.guestName;
+            document.getElementById('guestPhone').value = b.phone || '';
+            document.getElementById('guestCount').value = b.guestCount || '';
+            document.getElementById('chalet').value = b.chalet;
+            document.getElementById('totalPrice').value = b.totalPrice;
+            document.getElementById('paidAmount').value = b.paidAmount;
+            document.getElementById('paymentStatus').value = b.paymentStatus || 'guard';
+            document.getElementById('bookingNotes').value = b.notes || '';
+
+            document.getElementById('deleteBtn').classList.remove('hidden');
+            document.getElementById('bookingModal').classList.remove('hidden');
+            document.getElementById('bookingModal').classList.add('flex');
+        }
+
+        window.closeModal = function() {
+            document.getElementById('bookingModal').classList.add('hidden');
+        }
+
+        window.saveBooking = async function(e) {
+            e.preventDefault();
+            let name = document.getElementById('guestName').value;
+            let phone = document.getElementById('guestPhone').value;
+            let guestCount = document.getElementById('guestCount').value;
+            let total = parseFloat(document.getElementById('totalPrice').value);
+            let paid = parseFloat(document.getElementById('paidAmount').value);
+            let paymentStatus = document.getElementById('paymentStatus').value;
+            let duration = document.getElementById('bookingDuration').value;
+            let notes = document.getElementById('bookingNotes').value;
+
+            let slots = [];
+            let inText = '', outText = '';
+
+            let baseDate = currentEditDocId ? bookings.find(b => b.id === currentEditDocId).dateCreated : activeSelectedDate;
+            let baseShift = currentEditDocId ? bookings.find(b => b.id === currentEditDocId).slots[0].split('_')[1] : activeSelectedShift;
+
+            let nextDate = new Date(baseDate);
+            nextDate.setDate(nextDate.getDate() + 1);
+            let nextDateStr = nextDate.toISOString().split('T')[0];
+
+            if (duration === 'single') {
+                slots.push(`${baseDate}_${baseShift}`);
+                if (baseShift === 'morning') {
+                    inText = `${baseDate} (10:00 ص)`;
+                    outText = `${baseDate} (08:00 م)`;
+                } else {
+                    inText = `${baseDate} (10:00 م)`;
+                    outText = `${nextDateStr} (08:00 ص)`;
+                }
+            } else if (duration === '24_night') {
+                slots.push(`${baseDate}_night`, `${nextDateStr}_morning`);
+                inText = `${baseDate} (10:00 م)`;
+                outText = `${nextDateStr} (08:00 م)`;
+            } else if (duration === '24_morning') {
+                slots.push(`${baseDate}_morning`, `${baseDate}_night`);
+                inText = `${baseDate} (10:00 ص)`;
+                outText = `${nextDateStr} (08:00 ص)`;
+            } else if (duration === '48_hours') {
+                let day3 = new Date(baseDate);
+                day3.setDate(day3.getDate() + 2);
+                let day3Str = day3.toISOString().split('T')[0];
+                slots.push(`${baseDate}_morning`, `${baseDate}_night`, `${nextDateStr}_morning`, `${nextDateStr}_night`);
+                inText = `${baseDate} (10:00 ص)`;
+                outText = `${day3Str} (08:00 ص)`;
+            }
+
+            let docId = currentEditDocId || String(Date.now());
+            let existingGuardCollected = currentEditDocId ? (bookings.find(b => b.id === currentEditDocId).guardCollected || 0) : 0;
+
+            let bookingData = {
+                guestName: name,
+                phone: phone,
+                guestCount: guestCount,
+                chalet: currentChalet,
+                bookingType: duration,
+                slots: slots,
+                dateCreated: baseDate,
+                checkInFormatted: inText,
+                checkOutFormatted: outText,
+                totalPrice: total,
+                paidAmount: paid,
+                paymentStatus: paymentStatus,
+                notes: notes,
+                guardCollected: existingGuardCollected
+            };
+
+            try {
+                await setDoc(doc(db, "bookings", docId), bookingData);
+                closeModal();
+                loadBookings();
+                alert('✅ تم الحفظ بنجاح في السحابة!');
+            } catch (err) {
+                alert('❌ حدث خطأ أثناء الحفظ: ' + err.message);
+            }
+        }
+
+        window.deleteBooking = async function() {
+            if (currentEditDocId && confirm('حذف هذا الحجز نهائياً من السحابة؟')) {
+                try {
+                    await deleteDoc(doc(db, "bookings", currentEditDocId));
+                    closeModal();
+                    loadBookings();
+                    alert('✅ تم الحذف بنجاح');
+                } catch (err) {
+                    alert('❌ خطأ بالحذف');
+                }
+            }
+        }
+
+        window.deleteBookingExplicit = async function(id) {
+            if (confirm('حذف هذا الحجز نهائياً؟')) {
+                try {
+                    await deleteDoc(doc(db, "bookings", id));
+                    loadBookings();
+                    alert('✅ تم الحذف بنجاح');
+                } catch (err) {
+                    alert('❌ خطأ بالحذف');
+                }
+            }
+        }
+
+        window.logout = function() {
+            localStorage.removeItem('chaletLoggedIn');
+            localStorage.removeItem('chaletUser');
+            window.location.href = 'login.html';
+        }
+
+        loadBookings();
+    </script>
+</body>
 </html>
