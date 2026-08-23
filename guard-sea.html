@@ -43,7 +43,7 @@
                 <span id="totalCollectedCash" class="text-emerald-400 font-black text-sm">0 د.أ</span>
             </div>
             <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
-                <span class="text-red-400">💸 إجمالي المصاريف المسجلة:</span>
+                <span class="text-red-400">💸 إجمالي المصاريف الظاهرة:</span>
                 <span id="totalExpensesBox" class="text-red-400 font-bold">0 د.أ</span>
             </div>
             <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
@@ -71,9 +71,9 @@
         <div class="text-center text-slate-500 py-10 text-xs">جاري التحميل...</div>
     </div>
 
-    <!-- قسم تسجيل المصاريف اليومية -->
+    <!-- قسم تسجيل المصاريف الخاصة بالحارس -->
     <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl mt-6">
-        <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 تسجيل المصاريف وسندات القبض</h2>
+        <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 تسجيل مصاريف تخص الحارس</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" id="expenseNote" placeholder="بيان المصروف" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
             <input type="number" id="expenseAmount" placeholder="القيمة (د.أ)" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
@@ -114,7 +114,7 @@
             return daysArabic[d.getDay()];
         }
 
-        window.changeYear = function(amount) {
+        window.changeYear = function(amount)  {
             currentSelectedYear += amount;
             document.getElementById('yearDisplay').innerText = currentSelectedYear;
             renderMonthGrid();
@@ -177,7 +177,7 @@
 
             document.getElementById('todayTitle').innerText = `🔥 حجوزات اليوم (${todayDayName} ${todayStr}):`;
 
-            const todayBookings = allBookings.filter(b => b.chalet === activeChalet && b.slots && b.slots.some(s => s.includes(todayStr)));
+            const todayBookings = allBookings.filter(b => b.chalet && b.chalet.trim() === activeChalet && b.slots && b.slots.some(s => s.includes(todayStr)));
 
             if (todayBookings.length === 0) {
                 todayBox.innerHTML = `<p class="text-slate-400">لا توجد حجوزات مسجلة لهذا اليوم.</p>`;
@@ -206,7 +206,7 @@
             container.innerHTML = '';
 
             const filtered = allBookings.filter(b => {
-                let chaletMatch = b.chalet === activeChalet;
+                let chaletMatch = b.chalet && b.chalet.trim() === activeChalet;
                 let dateMatch = b.slots && b.slots.some(s => {
                     let dParts = s.split('_')[0].split('-'); 
                     return parseInt(dParts[0]) === currentSelectedYear && parseInt(dParts[1]) === currentSelectedMonth;
@@ -214,15 +214,20 @@
                 return chaletMatch && dateMatch;
             });
 
+            // استثناء الرواتب والمصاريف الإدارية الخاصة من بوابة الحارس
             const filteredExpenses = allExpenses.filter(e => {
-                let chaletMatch = (e.chalet === activeChalet);
+                let chaletMatch = (e.chalet && e.chalet.trim() === activeChalet);
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
-                return chaletMatch && dateMatch && !e.isGuardCollection;
+                
+                let noteLower = (e.note || '').toLowerCase();
+                let isSalaryOrAdmin = noteLower.includes('راتب') || noteLower.includes('إداري') || noteLower.includes('صيانة عامة');
+
+                return chaletMatch && dateMatch && !e.isGuardCollection && !isSalaryOrAdmin;
             });
 
             const guardCollections = allExpenses.filter(e => {
-                let chaletMatch = (e.chalet === activeChalet);
+                let chaletMatch = (e.chalet && e.chalet.trim() === activeChalet);
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
                 return chaletMatch && dateMatch && e.isGuardCollection;

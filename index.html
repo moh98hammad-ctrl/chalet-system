@@ -85,6 +85,19 @@
             </div>
         </div>
 
+        <!-- 💸 قسم تسجيل وعرض المصاريف في الصفحة الرئيسية -->
+        <div class="gold-card p-4 rounded-3xl space-y-3 shadow-xl">
+            <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 قائمة المصاريف وسندات القبض للشاليه</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input type="text" id="mainExpenseNote" placeholder="بيان المصروف أو سند القبض" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+                <input type="number" id="mainExpenseAmount" placeholder="القيمة (د.أ)" class="bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+            </div>
+            <button onclick="saveMainExpense()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">💾 حفظ المصروف لهذا الشاليه</button>
+            <div id="mainExpensesList" class="space-y-1.5 pt-2 border-t border-amber-600/20 text-xs">
+                <span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة لهذا الشهر.</span>
+            </div>
+        </div>
+
         <!-- التقويم -->
         <div class="gold-card p-4 rounded-3xl shadow-2xl space-y-3">
             <div class="flex justify-between items-center text-xs text-amber-400/90 border-b border-amber-600/30 pb-2 font-bold">
@@ -208,7 +221,6 @@
         const daysArabic = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
         const monthsNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
-        // دالة مساعدة لتنسيق التاريخ المحلي بدون خطأ الإزاحة (UTC Offset)
         function formatDateLocal(d) {
             let year = d.getFullYear();
             let month = String(d.getMonth() + 1).padStart(2, '0');
@@ -299,18 +311,16 @@
                 let chaletMatch = (e.chalet === currentChalet) || (!e.chalet && currentChalet === 'شاليه بلقيس');
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
-                return chaletMatch && dateMatch && !e.isGuardCollection;
-            });
-
-            const guardCollections = allExpenses.filter(e => {
-                let chaletMatch = (e.chalet === currentChalet) || (!e.chalet && currentChalet === 'شاليه بلقيس');
-                let d = new Date(e.date);
-                let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
-                return chaletMatch && dateMatch && e.isGuardCollection;
+                return chaletMatch && dateMatch;
             });
 
             let totalGuardCash = monthFiltered.reduce((sum, b) => sum + (parseFloat(b.guardCollected) || 0), 0);
             let totalExpenses = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            
+            let guardCollections = filteredExpenses.filter(e => e.isGuardCollection);
+            let normalExpenses = filteredExpenses.filter(e => !e.isGuardCollection);
+            
+            let totalNormalExpenses = normalExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
             let totalCollectedFromGuard = guardCollections.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
             let currentMonthDeposits = monthFiltered.reduce((sum, b) => sum + (parseFloat(b.paidAmount) || 0), 0);
 
@@ -318,9 +328,43 @@
 
             document.getElementById('indexGuardCash').innerText = totalGuardCash + ' د.أ';
             document.getElementById('indexMyPocketCash').innerText = totalInMyPocket + ' د.أ';
-            document.getElementById('indexExpenses').innerText = totalExpenses + ' د.أ';
+            document.getElementById('indexExpenses').innerText = totalNormalExpenses + ' د.أ';
             document.getElementById('indexFutureDeposits').innerText = currentMonthDeposits + ' د.أ';
             document.getElementById('summaryChaletName').innerText = currentChalet;
+
+            // عرض قائمة المصاريف في الصفحة الرئيسية
+            const expContainer = document.getElementById('mainExpensesList');
+            if (filteredExpenses.length === 0) {
+                expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة لهذا الشهر.</span>`;
+            } else {
+                expContainer.innerHTML = '';
+                filteredExpenses.forEach(ex => {
+                    let isCollection = ex.isGuardCollection;
+                    let displayTime = ex.formattedDate;
+                    if (!displayTime && ex.date) {
+                        let d = new Date(ex.date);
+                        if (!isNaN(d.getTime())) {
+                            let dateStr = d.toISOString().split('T')[0];
+                            let dayName = daysArabic[d.getDay()];
+                            let timeStr = d.toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' });
+                            displayTime = `${dateStr} (${dayName}) - ${timeStr}`;
+                        }
+                    }
+
+                    expContainer.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border ${isCollection ? 'border-purple-500/40 text-purple-300' : 'border-slate-800 text-slate-300'}">
+                            <div class="space-y-0.5">
+                                <div class="font-bold">${isCollection ? '📥 ' : '📝 '} ${ex.note}</div>
+                                ${displayTime ? `<div class="text-[10px] text-amber-400/80">📅 ${displayTime}</div>` : ''}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="${isCollection ? 'text-purple-400 font-bold' : 'text-red-400 font-bold'} text-sm">${ex.amount} د.أ</span>
+                                <button onclick="deleteMainExpense('${ex.id}')" class="text-red-500 font-black px-2 py-0.5 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white transition">✕</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
 
             const breakdownContainer = document.getElementById('monthlyDepositsBreakdown');
             breakdownContainer.innerHTML = '';
@@ -344,6 +388,39 @@
                         <span class="text-amber-300 font-black text-sm">${mTotalDeposit} د.أ</span>
                     </div>
                 `;
+            }
+        }
+
+        window.saveMainExpense = async function() {
+            let note = document.getElementById('mainExpenseNote').value.trim();
+            let amount = parseFloat(document.getElementById('mainExpenseAmount').value);
+            if (!note || isNaN(amount) || amount <= 0) return alert('أدخل بيانات صحيحة للمصروف');
+
+            let now = new Date();
+            let year = now.getFullYear();
+            let month = String(now.getMonth() + 1).padStart(2, '0');
+            let day = String(now.getDate()).padStart(2, '0');
+            let dateStr = `${year}-${month}-${day}`;
+            let dayName = daysArabic[now.getDay()];
+            let timeStr = now.toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' });
+
+            await setDoc(doc(db, "expenses", String(Date.now())), { 
+                note, 
+                amount, 
+                chalet: currentChalet, 
+                isGuardCollection: false,
+                date: now.toISOString(),
+                formattedDate: `${dateStr} (${dayName}) - ${timeStr}`
+            });
+            document.getElementById('mainExpenseNote').value = '';
+            document.getElementById('mainExpenseAmount').value = '';
+            loadBookings();
+        }
+
+        window.deleteMainExpense = async function(id) {
+            if (confirm('حذف هذا البند؟')) {
+                await deleteDoc(doc(db, "expenses", id));
+                loadBookings();
             }
         }
 
