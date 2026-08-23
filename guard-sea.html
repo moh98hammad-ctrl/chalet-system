@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بوابة الحارس عبد الله - شاليه طلة بحر</title>
+    <title>بوابة الحارس - شاليه طلة بحر</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #080c14; color: #f8fafc; font-family: system-ui, sans-serif; }
@@ -14,7 +14,7 @@
 <body class="p-4 md:p-6 max-w-2xl mx-auto min-h-screen space-y-4">
     
     <div class="gold-card p-4 rounded-2xl text-center space-y-3 shadow-xl">
-        <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (عبد الله) - متابعة الحجوزات</h1>
+        <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس - شاليه طلة بحر</h1>
 
         <!-- صندوق حجوزات اليوم الواضح -->
         <div class="bg-amber-950/40 p-4 rounded-xl border-2 border-amber-500 space-y-2 text-right shadow-lg">
@@ -100,6 +100,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // تم التعديل هنا ليطابق شاليه طلة بحر
         let activeChalet = 'شاليه طلة بحر';
         let currentSelectedYear = 2026;
         let currentSelectedMonth = 8;
@@ -207,14 +208,14 @@
             });
 
             const filteredExpenses = allExpenses.filter(e => {
-                let chaletMatch = e.chalet === activeChalet;
+                let chaletMatch = (e.chalet === activeChalet);
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
                 return chaletMatch && dateMatch && !e.isGuardCollection;
             });
 
             const guardCollections = allExpenses.filter(e => {
-                let chaletMatch = e.chalet === activeChalet;
+                let chaletMatch = (e.chalet === activeChalet);
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
                 return chaletMatch && dateMatch && e.isGuardCollection;
@@ -246,7 +247,6 @@
                     
                     const actualRemaining = total - (paid + collectedByGuard + cliqCollected + ownerCollected);
 
-                    // استخراج اسم اليوم بجانب التاريخ
                     let firstSlotDate = b.slots && b.slots.length > 0 ? b.slots[0].split('_')[0] : '';
                     let dayName = getDayNameFromDate(firstSlotDate);
                     let dayBadge = dayName ? `(${dayName})` : '';
@@ -263,7 +263,7 @@
                                 <p>📤 الخروج: <b class="text-amber-400">${b.checkOutFormatted || 'حسب الشفت'}</b></p>
                                 <p>💰 القيمة الكلية: <b class="text-white">${total} د.أ</b></p>
                                 <p>💵 العربون الأساسي: <b class="text-emerald-400">${paid} د.أ</b></p>
-                                <p>🛡️ مع عبد الله (كاش): <b class="text-sky-400">${collectedByGuard} د.أ</b></p>
+                                <p>🛡️ مع الحارس (كاش): <b class="text-sky-400">${collectedByGuard} د.أ</b></p>
                                 <p>💳 تحويل كليك: <b class="text-emerald-300">${cliqCollected} د.أ</b></p>
                                 <p>👑 دفع للمالك: <b class="text-amber-300">${ownerCollected} د.أ</b></p>
                                 <p>⏳ المتبقي للتحصيل: <b class="text-red-400">${actualRemaining > 0 ? actualRemaining : 0} د.أ</b></p>
@@ -297,11 +297,25 @@
                 expContainer.innerHTML = '';
                 allCombinedExpenses.forEach(ex => {
                     let isCollection = ex.isGuardCollection;
+                    let displayTime = ex.formattedDate;
+                    if (!displayTime && ex.date) {
+                        let d = new Date(ex.date);
+                        if (!isNaN(d.getTime())) {
+                            let dateStr = d.toISOString().split('T')[0];
+                            let dayName = daysArabic[d.getDay()];
+                            let timeStr = d.toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' });
+                            displayTime = `${dateStr} (${dayName}) - ${timeStr}`;
+                        }
+                    }
+
                     expContainer.innerHTML += `
-                        <div class="flex justify-between items-center bg-slate-950 p-2 rounded-xl border ${isCollection ? 'border-purple-500/40 text-purple-300' : 'border-slate-800 text-slate-300'}">
-                            <span>${isCollection ? '📥 ' : '📝 '} ${ex.note}</span>
+                        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border ${isCollection ? 'border-purple-500/40 text-purple-300' : 'border-slate-800 text-slate-300'}">
+                            <div class="space-y-0.5">
+                                <div class="font-bold">${isCollection ? '📥 ' : '📝 '} ${ex.note}</div>
+                                ${displayTime ? `<div class="text-[10px] text-amber-400/80">📅 ${displayTime}</div>` : ''}
+                            </div>
                             <div class="flex items-center gap-2">
-                                <span class="${isCollection ? 'text-purple-400 font-bold' : 'text-red-400 font-bold'}">${ex.amount} د.أ</span>
+                                <span class="${isCollection ? 'text-purple-400 font-bold' : 'text-red-400 font-bold'} text-sm">${ex.amount} د.أ</span>
                                 <button onclick="deleteExpense('${ex.id}')" class="text-red-500 font-black px-2 py-0.5 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white transition">✕</button>
                             </div>
                         </div>
@@ -357,9 +371,19 @@
             let note = document.getElementById('expenseNote').value.trim();
             let amount = parseFloat(document.getElementById('expenseAmount').value);
             if (!note || isNaN(amount) || amount <= 0) return alert('أدخل بيانات صحيحة للمصروف');
+
+            let now = new Date();
+            let dateStr = now.toISOString().split('T')[0];
+            let dayName = daysArabic[now.getDay()];
+            let timeStr = now.toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' });
+
             await setDoc(doc(db, "expenses", String(Date.now())), { 
-                note, amount, chalet: activeChalet, isGuardCollection: false,
-                date: new Date(currentSelectedYear, currentSelectedMonth - 1, 15).toISOString() 
+                note, 
+                amount, 
+                chalet: activeChalet, 
+                isGuardCollection: false,
+                date: now.toISOString(),
+                formattedDate: `${dateStr} (${dayName}) - ${timeStr}`
             });
             document.getElementById('expenseNote').value = '';
             document.getElementById('expenseAmount').value = '';
@@ -368,10 +392,20 @@
 
         window.collectCashFromGuard = async function() {
             let amount = parseFloat(document.getElementById('collectAmount').value);
-            if (isNaN(amount) || amount <= 0) return alert('أدخل مبلغ صحيح للاستلام!');
+            if (isNaN(amount) || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح للاستلام!');
+
+            let now = new Date();
+            let dateStr = now.toISOString().split('T')[0];
+            let dayName = daysArabic[now.getDay()];
+            let timeStr = now.toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' });
+
             await setDoc(doc(db, "expenses", String(Date.now())), { 
-                note: `قبض كاش من الحارس (عبد الله)`, amount: amount, chalet: activeChalet, isGuardCollection: true, 
-                date: new Date(currentSelectedYear, currentSelectedMonth - 1, 15).toISOString() 
+                note: `قبض كاش من الحارس`, 
+                amount: amount, 
+                chalet: activeChalet, 
+                isGuardCollection: true, 
+                date: now.toISOString(),
+                formattedDate: `${dateStr} (${dayName}) - ${timeStr}`
             });
             document.getElementById('collectAmount').value = '';
             alert('✅ تم استلام الكاش بنجاح!');

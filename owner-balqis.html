@@ -13,14 +13,13 @@
 </head>
 <body class="p-4 md:p-6 min-h-screen space-y-6 max-w-4xl mx-auto">
 
-    <!-- الشريط العلوي مع أزرار المشاركة -->
+    <!-- الشريط العلوي -->
     <div class="gold-card p-4 rounded-2xl flex flex-wrap justify-between items-center gap-3 shadow-xl">
         <div>
             <h1 class="text-base font-black gold-text">👑 التقرير المالي الشامل - شاليه بلقيس</h1>
             <p class="text-[11px] text-slate-400">شفافية كاملة للإيرادات والمصاريف وصافي الأرباح (عرض فقط)</p>
         </div>
         <div class="flex flex-wrap gap-2 text-xs font-bold">
-            <a href="index.html" class="bg-amber-600 text-white px-3 py-2 rounded-xl shadow transition">📅 لوحة التحكم</a>
             <button onclick="copyCurrentLink()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-xl shadow transition">🔗 نسخ الرابط</button>
             <button onclick="shareViaWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl shadow transition">💬 إرسال للواتساب</button>
         </div>
@@ -47,7 +46,7 @@
                 <b id="totalIncome" class="text-emerald-400 text-sm">0 د.أ</b>
             </div>
             <div class="flex justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <span>إجمالي المصاريف:</span>
+                <span>إجمالي المصاريف الحقيقية:</span>
                 <b id="totalExpenses" class="text-red-400 text-sm">0 د.أ</b>
             </div>
             <div class="flex justify-between bg-slate-950 p-3 rounded-xl border border-amber-500/40">
@@ -79,7 +78,7 @@
         <div id="ownerPaymentsTable" class="space-y-1.5"><span class="text-slate-500 text-[11px]">جاري التحميل...</span></div>
     </div>
 
-    <!-- جدول المصاريف التفصيلي -->
+    <!-- جدول المصاريف التفصيلي (بدون سندات القبض) -->
     <div class="gold-card p-5 rounded-3xl shadow-2xl space-y-3 text-xs">
         <h2 class="font-bold gold-text text-sm border-b border-amber-600/30 pb-2">📝 تفاصيل المصاريف المسجلة</h2>
         <div id="expensesTable" class="space-y-1.5"><span class="text-slate-500 text-[11px]">جاري تحميل المصاريف...</span></div>
@@ -177,11 +176,13 @@
                 return chaletMatch && dateMatch;
             });
 
+            // استثناء سندات القبض من الحارس (isGuardCollection) من المصاريف
             const monthExpenses = expenses.filter(e => {
-                let chaletMatch = (e.chalet === 'شاليه بلقيس') || (!e.chalet);
+                let chaletMatch = (e.chalet === 'شاليه بلقيس') || (!e.chalet) || (e.chalet === '');
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
-                return chaletMatch && dateMatch;
+                let isNotGuardCollection = !e.isGuardCollection;
+                return chaletMatch && dateMatch && isNotGuardCollection;
             });
 
             let totalIncome = monthBookings.reduce((sum, b) => sum + (parseFloat(b.totalPrice) || 0), 0);
@@ -193,7 +194,14 @@
             let managementShare = netProfit * 0.25;
             let ownerShare = netProfit - managementShare;
 
-            let ownerDirectCollected = monthBookings.reduce((sum, b) => sum + (parseFloat(b.ownerCollected) || 0), 0);
+            let ownerDirectCollected = monthBookings.reduce((sum, b) => {
+                let collected = parseFloat(b.ownerCollected) || 0;
+                if (collected === 0 && (b.paymentStatus === 'owner' || b.paymentStatus === 'later')) {
+                    collected = (parseFloat(b.totalPrice) || 0) - (parseFloat(b.paidAmount) || 0);
+                }
+                return sum + collected;
+            }, 0);
+
             let ownerRemaining = ownerShare - ownerDirectCollected;
             if(ownerRemaining < 0) ownerRemaining = 0;
 
@@ -207,12 +215,14 @@
 
             const ownerPaymentsContainer = document.getElementById('ownerPaymentsTable');
             ownerPaymentsContainer.innerHTML = '';
-            let directOwnerBookings = monthBookings.filter(b => (parseFloat(b.ownerCollected) || 0) > 0 || b.paymentStatus === 'owner');
+            
+            let directOwnerBookings = monthBookings.filter(b => (parseFloat(b.ownerCollected) || 0) > 0 || b.paymentStatus === 'owner' || b.paymentStatus === 'later');
+            
             if (directOwnerBookings.length === 0) {
                 ownerPaymentsContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد حجوزات مسددة للمالك مباشرة في هذا الشهر.</span>`;
             } else {
                 directOwnerBookings.forEach(b => {
-                    let collectedVal = parseFloat(b.ownerCollected) || (parseFloat(b.totalPrice) - parseFloat(b.paidAmount));
+                    let collectedVal = parseFloat(b.ownerCollected) || ((parseFloat(b.totalPrice) || 0) - (parseFloat(b.paidAmount) || 0));
                     ownerPaymentsContainer.innerHTML += `
                         <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
                             <span class="text-slate-300">👤 <b>${b.guestName}</b></span>
@@ -224,7 +234,7 @@
             const expContainer = document.getElementById('expensesTable');
             expContainer.innerHTML = '';
             if (monthExpenses.length === 0) {
-                expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف مسجلة في هذا الشاليه لهذا الشهر.</span>`;
+                expContainer.innerHTML = `<span class="text-slate-500 text-[11px]">لا توجد مصاريف حقيقية مسجلة في هذا الشاليه لهذا الشهر.</span>`;
             } else {
                 monthExpenses.forEach(ex => {
                     expContainer.innerHTML += `
