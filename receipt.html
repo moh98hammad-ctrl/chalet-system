@@ -186,13 +186,20 @@
         let guestsVal = params.get('guests') || 'غير محدد';
 
         const daysArabic = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+        
         function formatWithDay(dateTimeStr) {
             if (!dateTimeStr) return 'غير محدد';
-            let datePart = dateTimeStr.split(' ')[dateTimeStr.split(' ').length - 1];
-            let d = new Date(datePart);
-            if (!isNaN(d.getTime())) {
-                let dayName = daysArabic[d.getDay()];
-                return `${dateTimeStr} (${dayName})`;
+            // استخراج تاريخ الـ YYYY-MM-DD من النص
+            let parts = dateTimeStr.match(/\d{4}-\d{2}-\d{2}/);
+            if (parts) {
+                let datePart = parts[0];
+                let [y, m, d] = datePart.split('-');
+                let dateObj = new Date(y, m - 1, d);
+                if (!isNaN(dateObj.getTime())) {
+                    let dayName = daysArabic[dateObj.getDay()];
+                    // استبدال التاريخ بإضافة اسم اليوم جانبه
+                    return dateTimeStr.replace(datePart, `${datePart} (${dayName})`);
+                }
             }
             return dateTimeStr;
         }
@@ -213,40 +220,40 @@
         document.getElementById('paidAmount').innerText = paid + ' د.أ';
         document.getElementById('remainingAmount').innerText = rem + ' د.أ';
 
-    window.openDeliveryModal = function() {
-        document.getElementById('delDate').value = checkInVal;
-        document.getElementById('delCount').value = guestsVal !== 'غير محدد' ? guestsVal : '';
-        document.getElementById('deliveryModal').classList.remove('hidden');
-    }
-
-    window.closeDeliveryModal = function() {
-        document.getElementById('deliveryModal').classList.add('hidden');
-    }
-
-    window.sendDeliveryWhatsApp = function() {
-        let location = document.getElementById('delLocation').value.trim();
-        let time = document.getElementById('delTime').value.trim();
-        let count = document.getElementById('delCount').value.trim();
-
-        if (!location || !time || !count) {
-            alert('الرجاء تعبئة جميع الحقول (موقع الانطلاق، الوقت، والعدد)!');
-            return;
+        window.openDeliveryModal = function() {
+            document.getElementById('delDate').value = checkInVal;
+            document.getElementById('delCount').value = guestsVal !== 'غير محدد' ? guestsVal : '';
+            document.getElementById('deliveryModal').classList.remove('hidden');
         }
 
-        let message = `🚐 *طلب خدمة توصيل جديدة*\n\n` +
-                      `🏡 الشاليه: ${chaletName}\n` +
-                      `👤 اسم الزبون: ${guestNameVal}\n` +
-                      `📅 موعد الحجز: ${checkInVal}\n` +
-                      `📍 موقع الانطلاق: ${location}\n` +
-                      `⏰ وقت الانطلاق: ${time}\n` +
-                      `👥 العدد: ${count} أشخاص`;
+        window.closeDeliveryModal = function() {
+            document.getElementById('deliveryModal').classList.add('hidden');
+        }
 
-        let ownerWhatsAppNumber = "962791950490";
-        let url = `https://api.whatsapp.com/send?phone=${ownerWhatsAppNumber}&text=${encodeURIComponent(message)}`;
-        
-        window.open(url, '_blank');
-        closeDeliveryModal();
-    }
+        window.sendDeliveryWhatsApp = function() {
+            let location = document.getElementById('delLocation').value.trim();
+            let time = document.getElementById('delTime').value.trim();
+            let count = document.getElementById('delCount').value.trim();
+
+            if (!location || !time || !count) {
+                alert('الرجاء تعبئة جميع الحقول (موقع الانطلاق، الوقت، والعدد)!');
+                return;
+            }
+
+            let message = `🚐 *طلب خدمة توصيل جديدة*\n\n` +
+                          `🏡 الشاليه: ${chaletName}\n` +
+                          `👤 اسم الزبون: ${guestNameVal}\n` +
+                          `📅 موعد الحجز: ${checkInVal}\n` +
+                          `📍 موقع الانطلاق: ${location}\n` +
+                          `⏰ وقت الانطلاق: ${time}\n` +
+                          `👥 العدد: ${count} أشخاص`;
+
+            let ownerWhatsAppNumber = "962791950490";
+            let url = `https://api.whatsapp.com/send?phone=${ownerWhatsAppNumber}&text=${encodeURIComponent(message)}`;
+            
+            window.open(url, '_blank');
+            closeDeliveryModal();
+        }
     </script>
 </body>
 </html>
