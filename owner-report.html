@@ -228,14 +228,18 @@
             }
         }
 
-        // دالة نسخ الرابط النظيف (تأخذ الرابط الأساسي الحالي وتضيف له اسم الشاليه)
+        // دالة لنسخ الرابط مع ضمان تفعيل الرابط كـ Clickable على الواتساب
         window.copyLink = function(chaletKey) {
             let cleanUrl = window.location.href.split('?')[0];
+            // إضافة https:// إجبارياً إذا كان الرابط يبدأ بـ http ليتعرف عليه الواتساب كرابط
+            if (!cleanUrl.startsWith('http')) {
+                cleanUrl = 'https://' + window.location.host + window.location.pathname;
+            }
             let directLink = `${cleanUrl}?chalet=${chaletKey}`;
             
             navigator.clipboard.writeText(directLink).then(() => {
                 let chaletName = chaletKey === 'balqis' ? 'شاليه بلقيس' : 'طلة بحر';
-                alert(`✅ تم نسخ رابط ${chaletName} بنجاح!\nالرابط: ${directLink}`);
+                alert(`✅ تم نسخ رابط ${chaletName} بنجاح!\n\nالرابط: ${directLink}\n\nجاهز للإرسال على الواتساب مباشرة.`);
             }).catch(err => {
                 prompt("انسخ الرابط يدوياً:", directLink);
             });
