@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بوابة الحارس صالح - شاليه بلقيس</title>
+    <title>بوابة الحارس عبد الله - شاليه طلة بحر</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #080c14; color: #f8fafc; font-family: system-ui, sans-serif; }
@@ -14,7 +14,7 @@
 <body class="p-4 md:p-6 max-w-2xl mx-auto min-h-screen space-y-4">
     
     <div class="gold-card p-4 rounded-2xl text-center space-y-3 shadow-xl">
-        <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (صالح) - متابعة الحجوزات</h1>
+        <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (عبد الله) - متابعة الحجوزات</h1>
 
         <!-- صندوق حجوزات اليوم الواضح -->
         <div class="bg-amber-950/40 p-4 rounded-xl border-2 border-amber-500 space-y-2 text-right shadow-lg">
@@ -100,7 +100,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let activeChalet = 'شاليه بلقيس';
+        let activeChalet = 'شاليه طلة بحر';
         let currentSelectedYear = 2026;
         let currentSelectedMonth = 8;
         let allBookings = [];
@@ -207,14 +207,14 @@
             });
 
             const filteredExpenses = allExpenses.filter(e => {
-                let chaletMatch = (e.chalet === activeChalet) || (!e.chalet && activeChalet === 'شاليه بلقيس');
+                let chaletMatch = e.chalet === activeChalet;
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
                 return chaletMatch && dateMatch && !e.isGuardCollection;
             });
 
             const guardCollections = allExpenses.filter(e => {
-                let chaletMatch = (e.chalet === activeChalet) || (!e.chalet && activeChalet === 'شاليه بلقيس');
+                let chaletMatch = e.chalet === activeChalet;
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
                 return chaletMatch && dateMatch && e.isGuardCollection;
@@ -263,7 +263,7 @@
                                 <p>📤 الخروج: <b class="text-amber-400">${b.checkOutFormatted || 'حسب الشفت'}</b></p>
                                 <p>💰 القيمة الكلية: <b class="text-white">${total} د.أ</b></p>
                                 <p>💵 العربون الأساسي: <b class="text-emerald-400">${paid} د.أ</b></p>
-                                <p>🛡️ مع صالح (كاش): <b class="text-sky-400">${collectedByGuard} د.أ</b></p>
+                                <p>🛡️ مع عبد الله (كاش): <b class="text-sky-400">${collectedByGuard} د.أ</b></p>
                                 <p>💳 تحويل كليك: <b class="text-emerald-300">${cliqCollected} د.أ</b></p>
                                 <p>👑 دفع للمالك: <b class="text-amber-300">${ownerCollected} د.أ</b></p>
                                 <p>⏳ المتبقي للتحصيل: <b class="text-red-400">${actualRemaining > 0 ? actualRemaining : 0} د.أ</b></p>
@@ -368,9 +368,9 @@
 
         window.collectCashFromGuard = async function() {
             let amount = parseFloat(document.getElementById('collectAmount').value);
-            if (isNaN(amount) || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح للاستلام!');
+            if (isNaN(amount) || amount <= 0) return alert('أدخل مبلغ صحيح للاستلام!');
             await setDoc(doc(db, "expenses", String(Date.now())), { 
-                note: `قبض كاش من الحارس (صالح)`, amount: amount, chalet: activeChalet, isGuardCollection: true, 
+                note: `قبض كاش من الحارس (عبد الله)`, amount: amount, chalet: activeChalet, isGuardCollection: true, 
                 date: new Date(currentSelectedYear, currentSelectedMonth - 1, 15).toISOString() 
             });
             document.getElementById('collectAmount').value = '';
