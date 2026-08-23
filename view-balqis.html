@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقويم حجوزات شاليه بلقيس</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #080c14; color: #f8fafc; font-family: system-ui, sans-serif; }
+        .gold-card { background: #121824; border: 1px solid rgba(217, 119, 6, 0.4); }
+        .gold-text { color: #fbbf24; }
+        .slot-free { background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; }
+        .slot-booked { background-color: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); color: #f87171; }
+    </style>
+</head>
+<body class="p-4 md:p-6 max-w-3xl mx-auto min-h-screen space-y-5">
+
+    <div class="gold-card p-4 rounded-2xl text-center space-y-1 shadow-xl">
+        <h1 class="text-base font-black gold-text">👑 تقويم حجوزات شاليه بلقيس</h1>
+        <p class="text-[11px] text-slate-400">متابعة الأيام المتاحة والمحجوزة (للاستعلام فقط)</p>
+    </div>
+
+    <!-- اختيار السنة والأشهر -->
+    <div class="gold-card p-4 rounded-3xl space-y-4 shadow-xl">
+        <div class="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-amber-600/40 text-xs">
+            <button onclick="changeYear(-1)" class="bg-amber-600 text-white font-black px-3 py-2 rounded-xl transition shadow">◀️ السنة السابقة</button>
+            <span id="yearDisplay" class="text-amber-400 font-black text-sm">2026</span>
+            <button onclick="changeYear(1)" class="bg-amber-600 text-white font-black px-3 py-2 rounded-xl transition shadow">السنة القادمة ▶️</button>
+        </div>
+
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 text-center" id="monthGrid"></div>
+    </div>
+
+    <!-- التقويم -->
+    <div class="gold-card p-4 rounded-3xl shadow-2xl space-y-3">
+        <div class="flex justify-between items-center text-xs text-amber-400 font-bold border-b border-amber-600/30 pb-2">
+            <span id="calendarTitle">تقويم الحجوزات</span>
+        </div>
+        <div id="daysGrid" class="space-y-2"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLADHraLGTIqPeG8uTLfYL3N-DveiCG0",
+            authDomain: "chaletweb-a3c4c.firebaseapp.com",
+            projectId: "chaletweb-a3c4c",
+            storageBucket: "chaletweb-a3c4c.firebasestorage.app",
+            messagingSenderId: "500819160699",
+            appId: "1:500819160699:web:fede92cc5eae41de69bcde"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let activeChalet = 'شاليه بلقيس';
+        let currentSelectedYear = new Date().getFullYear();
+        let currentSelectedMonth = new Date().getMonth() + 1;
+        let bookings = [];
+
+        const daysArabic = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+        const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+        function formatDateLocal(d) {
+            let year = d.getFullYear();
+            let month = String(d.getMonth() + 1).padStart(2, '0');
+            let day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        window.changeYear = function(amount) {
+            currentSelectedYear += amount;
+            document.getElementById('yearDisplay').innerText = currentSelectedYear;
+            renderMonthGrid();
+            renderCalendarGrid();
+        }
+
+        window.changeMonth = function(mNum) {
+            currentSelectedMonth = mNum;
+            renderMonthGrid();
+            renderCalendarGrid();
+        }
+
+        window.renderMonthGrid = function() {
+            const grid = document.getElementById('monthGrid');
+            grid.innerHTML = '';
+            
+            months.forEach((m, index) => {
+                let mNum = index + 1;
+                let isActive = mNum === currentSelectedMonth;
+                grid.innerHTML += `
+                    <button onclick="changeMonth(${mNum})" 
+                        class="p-2.5 rounded-xl text-xs font-bold transition ${isActive ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'}">
+                        ${m}
+                    </button>`;
+            });
+            document.getElementById('calendarTitle').innerText = `تقويم شاليه بلقيس (سنة ${currentSelectedYear} - شهر ${months[currentSelectedMonth - 1]})`;
+        }
+
+        async function loadBookings() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "bookings"));
+                bookings = [];
+                querySnapshot.forEach((docSnap) => {
+                    bookings.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderMonthGrid();
+                renderCalendarGrid();
+            } catch (e) {
+                console.error("Error loading bookings:", e);
+            }
+        }
+
+        window.renderCalendarGrid = function() {
+            const container = document.getElementById('daysGrid');
+            container.innerHTML = '';
+
+            let date = new Date(currentSelectedYear, currentSelectedMonth - 1, 1);
+            
+            while (date.getMonth() === currentSelectedMonth - 1) {
+                let dateStr = formatDateLocal(date);
+                let dayName = daysArabic[date.getDay()];
+                let formattedDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+
+                let morningBooking = bookings.find(b => b.chalet && b.chalet.trim() === activeChalet && b.slots && b.slots.includes(`${dateStr}_morning`));
+                let nightBooking = bookings.find(b => b.chalet && b.chalet.trim() === activeChalet && b.slots && b.slots.includes(`${dateStr}_night`));
+
+                container.innerHTML += `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-900/80 border border-amber-600/20 gap-2">
+                        <div class="font-bold text-slate-200 text-xs sm:text-sm">
+                            <span class="gold-text font-black">${dayName}</span> 
+                            <span class="text-slate-400 text-xs">(${formattedDate})</span>
+                        </div>
+                        
+                        <div class="flex gap-2 text-xs">
+                            <div class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl font-bold text-center ${morningBooking ? 'slot-booked' : 'slot-free'}">
+                                ☀️ صباحي: ${morningBooking ? '🔒 ' + morningBooking.guestName : 'متاح ✅'}
+                            </div>
+
+                            <div class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl font-bold text-center ${nightBooking ? 'slot-booked' : 'slot-free'}">
+                                🌙 مسائي: ${nightBooking ? '🔒 ' + nightBooking.guestName : 'متاح ✅'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                date.setDate(date.getDate() + 1);
+            }
+        }
+
+        loadBookings();
+    </script>
+</body>
+</html>
