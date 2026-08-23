@@ -64,7 +64,7 @@
             </div>
         </div>
 
-        <!-- زر خدمة توصيل الجديد -->
+        <!-- زر خدمة توصيل -->
         <div>
             <button onclick="openDeliveryModal()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-2xl text-xs md:text-sm shadow-lg flex items-center justify-center gap-2 transition transform active:scale-95">
                 🚐 خدمة توصيل
@@ -159,7 +159,8 @@
         if (chaletName.includes('طلة بحر')) {
             guardName = "عبد الله";
             guardPhone = "0781402459";
-            mapUrl = "https://maps.app.goo.gl/YourSeaViewLocation";
+            // تم ضبط رابط خرائط جوجل لشاليه طلة بحر (يمكنك تغييره بالرابط الخاص بك لاحقاً)
+            mapUrl = "https://maps.app.goo.gl/utgPrY2wvnVhY21a7?g_st=com.google.maps.preview.copy";
         }
 
         document.getElementById('guardNameText').innerText = `🛡️ الحارس (${guardName})`;
@@ -170,13 +171,28 @@
         document.getElementById('mapLink').href = mapUrl;
 
         let guestNameVal = params.get('name') || 'غير محدد';
-        let checkInVal = params.get('in') || 'غير محدد';
-        let checkOutVal = params.get('out') || 'غير محدد';
+        let rawCheckIn = params.get('in') || '';
+        let rawCheckOut = params.get('out') || '';
         let guestsVal = params.get('guests') || 'غير محدد';
 
+        const daysArabic = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+        function formatWithDay(dateTimeStr) {
+            if (!dateTimeStr) return 'غير محدد';
+            let datePart = dateTimeStr.split(' ')[dateTimeStr.split(' ').length - 1];
+            let d = new Date(datePart);
+            if (!isNaN(d.getTime())) {
+                let dayName = daysArabic[d.getDay()];
+                return `${dateTimeStr} (${dayName})`;
+            }
+            return dateTimeStr;
+        }
+
+        let checkInVal = formatWithDay(rawCheckIn);
+        let checkOutVal = formatWithDay(rawCheckOut);
+
         if(params.get('name')) document.getElementById('guestName').innerText = guestNameVal;
-        if(params.get('in')) document.getElementById('checkIn').innerText = checkInVal;
-        if(params.get('out')) document.getElementById('checkOut').innerText = checkOutVal;
+        if(rawCheckIn) document.getElementById('checkIn').innerText = checkInVal;
+        if(rawCheckOut) document.getElementById('checkOut').innerText = checkOutVal;
         if(params.get('guests')) document.getElementById('guestCount').innerText = guestsVal;
         
         let total = parseFloat(params.get('total')) || 0;
@@ -187,7 +203,6 @@
         document.getElementById('paidAmount').innerText = paid + ' د.أ';
         document.getElementById('remainingAmount').innerText = rem + ' د.أ';
 
-    // دوال نافذة خدمة التوصيل
     window.openDeliveryModal = function() {
         document.getElementById('delDate').value = checkInVal;
         document.getElementById('delCount').value = guestsVal !== 'غير محدد' ? guestsVal : '';
