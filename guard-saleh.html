@@ -16,6 +16,7 @@
     <div class="gold-card p-4 rounded-2xl text-center space-y-3 shadow-xl">
         <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (صالح) - متابعة الحجوزات</h1>
 
+        <!-- صندوق حجوزات اليوم (يزول تلقائياً بعد انتهاء اليوم) -->
         <div class="bg-amber-950/40 p-4 rounded-xl border-2 border-amber-500 space-y-2 text-right shadow-lg">
             <h2 id="todayTitle" class="text-xs font-black text-amber-300">
                 🔥 حجوزات اليوم:
@@ -25,14 +26,17 @@
             </div>
         </div>
 
+        <!-- واجهة اختيار السنة والشهر -->
         <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-amber-600/40 text-xs">
             <button onclick="changeYear(-1)" class="bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg shadow">◀️ السنة السابقة</button>
             <span id="yearDisplay" class="text-amber-400 font-black text-sm">2026</span>
             <button onclick="changeYear(1)" class="bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg shadow">السنة القادمة ▶️</button>
         </div>
 
+        <!-- شبكة الأشهر -->
         <div class="grid grid-cols-4 sm:grid-cols-6 gap-1.5 pt-1" id="monthGrid"></div>
 
+        <!-- صندوق تفصيل ذمة الحارس والمجاميع -->
         <div class="bg-slate-950 p-3 rounded-xl border border-sky-500/40 text-right space-y-2 text-xs">
             <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
                 <span class="text-sky-400 font-bold">💵 إجمالي ما استلمه كاش باليد:</span>
@@ -61,10 +65,12 @@
         </div>
     </div>
 
+    <!-- قائمة الحجوزات للشهر المحدد فقط -->
     <div id="guardBookingsList" class="space-y-3">
         <div class="text-center text-slate-500 py-10 text-xs">جاري التحميل...</div>
     </div>
 
+    <!-- قسم تسجيل المصاريف الخاصة بالحارس -->
     <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl mt-6">
         <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 تسجيل مصاريف تخص الحارس</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -162,18 +168,33 @@
             todayBox.innerHTML = '';
             
             const nowLocal = new Date();
-            const yearStr = nowLocal.getFullYear();
-            const monthStr = String(nowLocal.getMonth() + 1).padStart(2, '0');
-            const dayStr = String(nowLocal.getDate()).padStart(2, '0');
-            const todayStr = `${yearStr}-${monthStr}-${dayStr}`;
-            const todayDayName = daysArabic[nowLocal.getDay()];
+            let yearStr = nowLocal.getFullYear();
+            let monthStr = String(nowLocal.getMonth() + 1).padStart(2, '0');
+            let dayStr = String(nowLocal.getDate()).padStart(2, '0');
+            let todayDateStr = `${yearStr}-${monthStr}-${dayStr}`;
+            let todayTimeObj = new Date(nowLocal.setHours(0,0,0,0));
+            let todayDayName = daysArabic[nowLocal.getDay()];
 
-            document.getElementById('todayTitle').innerText = `🔥 حجوزات اليوم (${todayDayName} ${todayStr}):`;
+            document.getElementById('todayTitle').innerText = `🔥 حجوزات اليوم (${todayDayName} ${todayDateStr}):`;
 
-            const todayBookings = allBookings.filter(b => b.chalet && b.chalet.trim() === activeChalet && b.slots && b.slots.some(s => s.includes(todayStr)));
+            // فلترة حجوزات اليوم بحيث تختفي تلقائياً بمجرد انقضاء يوم الحجز
+            const todayBookings = allBookings.filter(b => {
+                if (!b.chalet || b.chalet.trim() !== activeChalet || !b.slots) return false;
+                
+                return b.slots.some(s => {
+                    let slotDateStr = s.split('_')[0]; 
+                    let slotDateObj = new Date(slotDateStr);
+                    slotDateObj.setHours(0,0,0,0);
+
+                    let diffTime = todayTimeObj - slotDateObj;
+                    let diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+                    return diffDays === 0; 
+                });
+            });
 
             if (todayBookings.length === 0) {
-                todayBox.innerHTML = `<p class="text-slate-400">لا توجد حجوزات مسجلة لهذا اليوم.</p>`;
+                todayBox.innerHTML = `<p class="text-slate-400">لا توجد حجوزات نشطة لهذا اليوم.</p>`;
             } else {
                 todayBookings.forEach(tb => {
                     let total = parseFloat(tb.totalPrice) || 0;
