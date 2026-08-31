@@ -16,10 +16,10 @@
     <div class="gold-card p-4 rounded-2xl text-center space-y-3 shadow-xl">
         <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (عبد الله) - متابعة الحجوزات</h1>
 
-        <!-- صندوق حجوزات اليوم والحجوزات القادمة فقط -->
+        <!-- صندوق حجوزات اليوم والقادمة (حجوزات اليوم في البداية) -->
         <div class="bg-sky-950/40 p-4 rounded-xl border-2 border-sky-500 space-y-2 text-right shadow-lg">
             <h2 id="todayTitle" class="text-xs font-black text-sky-300">
-                🔥 حجوزات اليوم والحجوزات القادمة:
+                🔥 حجوزات اليوم (في البداية) والحجوزات القادمة:
             </h2>
             <div id="todayBox" class="space-y-2 text-xs">
                 <p class="text-slate-300">جاري تحميل الحجوزات...</p>
@@ -62,12 +62,10 @@
         </div>
     </div>
 
-    <!-- قائمة الحجوزات للشهر المحدد فقط -->
     <div id="guardBookingsList" class="space-y-3">
         <div class="text-center text-slate-500 py-10 text-xs">جاري التحميل...</div>
     </div>
 
-    <!-- قسم تسجيل المصاريف الخاصة بالحارس -->
     <div class="gold-card p-4 rounded-2xl space-y-3 shadow-xl mt-6">
         <h2 class="text-xs font-bold gold-text flex items-center gap-1">💸 تسجيل مصاريف تخص الحارس</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -164,7 +162,6 @@
             const todayBox = document.getElementById('todayBox');
             todayBox.innerHTML = '';
             
-            // تاريخ اليوم الحالي (31/8/2026)
             const nowLocal = new Date(2026, 7, 31); 
             let yearStr = nowLocal.getFullYear();
             let monthStr = String(nowLocal.getMonth() + 1).padStart(2, '0');
@@ -173,27 +170,36 @@
             let todayTimeObj = new Date(nowLocal.setHours(0,0,0,0));
             let todayDayName = daysArabic[nowLocal.getDay()];
 
-            document.getElementById('todayTitle').innerText = `🔥 حجوزات اليوم والحجوزات القادمة (${todayDayName} ${todayDateStr}):`;
+            document.getElementById('todayTitle').innerText = `🔥 حجوزات اليوم (في البداية) والحجوزات القادمة (${todayDayName} ${todayDateStr}):`;
 
-            // التعديل الجذري: إظهار الحجوزات التي تاريخها اليوم أو في المستقبل فقط، وإخفاء القديمة تماماً
-            const todayBookings = allBookings.filter(b => {
-                if (!b.chalet || b.chalet.trim() !== activeChalet || !b.slots) return false;
+            // فلترة الحجوزات (استبعاد القديمة ومنها التي انتهى خروجها)
+            const activeBookings = allBookings.filter(b => {
+                if (!b.chalet || b.chalet.trim() !== activeChalet || !b.slots || b.slots.length === 0) return false;
                 
-                // يكفي أن يكون هناك شفت واحد في الحجز تاريخه اليوم أو بعد اليوم (مستقبلي)
-                return b.slots.some(s => {
-                    let slotDateStr = s.split('_')[0]; 
-                    let slotDateObj = new Date(slotDateStr);
-                    slotDateObj.setHours(0,0,0,0);
-
-                    // إذا كان تاريخ الشفت أكبر من أو يساوي تاريخ اليوم (يعني اليوم أو مستقبل)
-                    return slotDateObj >= todayTimeObj;
+                let slotDates = b.slots.map(s => {
+                    let dStr = s.split('_')[0];
+                    let dObj = new Date(dStr);
+                    dObj.setHours(0,0,0,0);
+                    return dObj.getTime();
                 });
+
+                let maxSlotDate = Math.max(...slotDates);
+                return maxSlotDate >= todayTimeObj.getTime();
             });
 
-            if (todayBookings.length === 0) {
+            // ترتيب الحجوزات: جعل حجز اليوم في المقدمة، ثم الحجوزات المستقبلية
+            activeBookings.sort((a, b) => {
+                let aHasToday = a.slots.some(s => s.split('_')[0] === todayDateStr);
+                let bHasToday = b.slots.some(s => s.split('_')[0] === todayDateStr);
+                if (aHasToday && !bHasToday) return -1;
+                if (!aHasToday && bHasToday) return 1;
+                return 0;
+            });
+
+            if (activeBookings.length === 0) {
                 todayBox.innerHTML = `<p class="text-slate-400">لا توجد حجوزات نشطة أو قادمة.</p>`;
             } else {
-                todayBookings.forEach(tb => {
+                activeBookings.forEach(tb => {
                     let total = parseFloat(tb.totalPrice) || 0;
                     let paid = parseFloat(tb.paidAmount) || 0;
                     let guardCol = parseFloat(tb.guardCollected) || 0;
@@ -201,9 +207,16 @@
                     let ownerCol = parseFloat(tb.ownerCollected) || 0;
                     let rem = total - (paid + guardCol + cliqCol + ownerCol);
 
+                    let isToday = tb.slots.some(s => s.split('_')[0] === todayDateStr);
+                    let borderStyle = isToday ? 'border-2 border-amber-400 bg-amber-950/20' : 'border border-sky-500/50 bg-slate-900';
+                    let badgeToday = isToday ? '<span class="bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded text-[10px] ml-2">حجز اليوم ⭐</span>' : '';
+
                     todayBox.innerHTML += `
-                        <div class="bg-slate-900 p-3 rounded-xl border border-sky-500/50 space-y-1 text-white">
-                            <p class="font-bold text-sky-300 text-sm">👤 الزبون: ${tb.guestName}</p>
+                        <div class="${borderStyle} p-3 rounded-xl space-y-1 text-white">
+                            <p class="font-bold text-sky-300 text-sm flex items-center justify-between">
+                                <span>👤 الزبون: ${tb.guestName}</span>
+                                ${badgeToday}
+                            </p>
                             <p>📞 الهاتف: ${tb.phone || 'بدون'}</p>
                             <p>📥 الدخول: ${tb.checkInFormatted || 'حسب الشفت'}</p>
                             <p>📤 الخروج: ${tb.checkOutFormatted || 'حسب الشفت'}</p>
@@ -226,14 +239,14 @@
             });
 
             const filteredExpenses = allExpenses.filter(e => {
-                let chaletMatch = (e.chalet === activeChalet);
+                let chaletMatch = (e.chalet === activeChalet) || (!e.chalet && activeChalet === 'شاليه بلقيس');
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
                 return chaletMatch && dateMatch && !e.isGuardCollection && !e.isPrivate;
             });
 
             const guardCollections = allExpenses.filter(e => {
-                let chaletMatch = (e.chalet === activeChalet);
+                let chaletMatch = (e.chalet === activeChalet) || (!e.chalet && activeChalet === 'شاليه بلقيس');
                 let d = new Date(e.date);
                 let dateMatch = d.getFullYear() === currentSelectedYear && (d.getMonth() + 1) === currentSelectedMonth;
                 return chaletMatch && dateMatch && e.isGuardCollection;
