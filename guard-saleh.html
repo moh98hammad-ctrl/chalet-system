@@ -16,7 +16,7 @@
     <div class="gold-card p-4 rounded-2xl text-center space-y-3 shadow-xl">
         <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (صالح) - متابعة الحجوزات</h1>
 
-        <!-- صندوق حجز اليوم فقط -->
+        <!-- صندوق حجز اليوم فقط (محدث لتاريخ اليوم الخميس 3/9/2026) -->
         <div class="bg-amber-950/40 p-4 rounded-xl border-2 border-amber-500 space-y-2 text-right shadow-lg">
             <h2 id="todayTitle" class="text-xs font-black text-amber-300">
                 🔥 حجز اليوم فقط:
@@ -62,7 +62,7 @@
         </div>
     </div>
 
-    <!-- قائمة الحجوزات الحالية والمستقبلية للشهر المحدد فقط (تخفي المنتهية) -->
+    <!-- قائمة الحجوزات الحالية والمستقبلية للشهر المحدد فقط -->
     <div id="guardBookingsList" class="space-y-3">
         <div class="text-center text-slate-500 py-10 text-xs">جاري التحميل...</div>
     </div>
@@ -97,7 +97,7 @@
 
         let activeChalet = 'شاليه بلقيس';
         let currentSelectedYear = 2026;
-        let currentSelectedMonth = 9; // شهر سبتمبر (الشهر الحالي)
+        let currentSelectedMonth = 9; // شهر سبتمبر
         let allBookings = [];
         let allExpenses = [];
         const daysArabic = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -163,8 +163,8 @@
             const todayBox = document.getElementById('todayBox');
             todayBox.innerHTML = '';
             
-            // تاريخ اليوم الحالي (1/9/2026)
-            const nowLocal = new Date(2026, 8, 1); 
+            // تاريخ اليوم الحالي المحدث (الخميس 3/9/2026)
+            const nowLocal = new Date(2026, 8, 3); 
             let yearStr = nowLocal.getFullYear();
             let monthStr = String(nowLocal.getMonth() + 1).padStart(2, '0');
             let dayStr = String(nowLocal.getDate()).padStart(2, '0');
@@ -174,7 +174,7 @@
 
             document.getElementById('todayTitle').innerText = `🔥 حجز اليوم فقط (${todayDayName} ${todayDateStr}):`;
 
-            // فلترة صندوق حجز اليوم فقط
+            // فلترة صندوق حجز اليوم (تاريخ 03-09-2026)
             const todayBookings = allBookings.filter(b => {
                 if (!b.chalet || b.chalet.trim() !== activeChalet || !b.slots || b.slots.length === 0) return false;
                 
@@ -215,7 +215,7 @@
             const container = document.getElementById('guardBookingsList');
             container.innerHTML = '';
 
-            // فلترة القائمة الشهرية: عرض الحجوزات الحالية والمستقبلية فقط واستبعاد المنتهية
+            // فلترة القائمة الشهرية لإخفاء الحجوزات المنتهية وعرض الحالية والمستقبلية فقط
             const filtered = allBookings.filter(b => {
                 let chaletMatch = b.chalet && b.chalet.trim() === activeChalet;
                 if (!chaletMatch || !b.slots || b.slots.length === 0) return false;
@@ -408,8 +408,8 @@
             let amount = parseFloat(document.getElementById('expenseAmount').value);
             if (!note || isNaN(amount) || amount <= 0) return alert('أدخل بيانات صحيحة للمصروف');
 
-            let now = new Date(2026, 8, 1);
-            let dateStr = "2026-09-01";
+            let now = new Date(2026, 8, 3);
+            let dateStr = "2026-09-03";
             let dayName = daysArabic[now.getDay()];
             let timeStr = "12:00 م";
 
@@ -431,8 +431,8 @@
             let amount = parseFloat(document.getElementById('collectAmount').value);
             if (isNaN(amount) || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح للاستلام!');
 
-            let now = new Date(2026, 8, 1);
-            let dateStr = "2026-09-01";
+            let now = new Date(2026, 8, 3);
+            let dateStr = "2026-09-03";
             let dayName = daysArabic[now.getDay()];
             let timeStr = "12:00 م";
 
