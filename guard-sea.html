@@ -16,7 +16,7 @@
     <div class="gold-card p-4 rounded-2xl text-center space-y-3 shadow-xl">
         <h1 class="text-base font-black gold-text">🛡️ بوابة الحارس (عبد الله) - متابعة الحجوزات</h1>
 
-        <!-- صندوق حجز اليوم فقط (محدث لتاريخ اليوم الجمعة 4/9/2026) -->
+        <!-- صندوق حجز اليوم (يعتمد على تاريخ اليوم التلقائي) -->
         <div class="bg-sky-950/40 p-4 rounded-xl border-2 border-sky-500 space-y-2 text-right shadow-lg">
             <h2 id="todayTitle" class="text-xs font-black text-sky-300">
                 🔥 حجز اليوم فقط:
@@ -62,7 +62,7 @@
         </div>
     </div>
 
-    <!-- قائمة الحجوزات الحالية والمستقبلية للشهر المحدد فقط -->
+    <!-- قائمة الحجوزات للشهر المحدد -->
     <div id="guardBookingsList" class="space-y-3">
         <div class="text-center text-slate-500 py-10 text-xs">جاري التحميل...</div>
     </div>
@@ -96,8 +96,8 @@
         const db = getFirestore(app);
 
         let activeChalet = 'شاليه طلة بحر';
-        let currentSelectedYear = 2026;
-        let currentSelectedMonth = 9; // شهر سبتمبر
+        let currentSelectedYear = new Date().getFullYear();
+        let currentSelectedMonth = new Date().getMonth() + 1;
         let allBookings = [];
         let allExpenses = [];
         const daysArabic = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -163,8 +163,8 @@
             const todayBox = document.getElementById('todayBox');
             todayBox.innerHTML = '';
             
-            // تاريخ اليوم الحالي (الجمعة 4/9/2026)
-            const nowLocal = new Date(2026, 8, 4); 
+            // جلب تاريخ اليوم تلقائياً من جهاز المستخدم بشكل حقيقي
+            const nowLocal = new Date(); 
             let yearStr = nowLocal.getFullYear();
             let monthStr = String(nowLocal.getMonth() + 1).padStart(2, '0');
             let dayStr = String(nowLocal.getDate()).padStart(2, '0');
@@ -174,7 +174,7 @@
 
             document.getElementById('todayTitle').innerText = `🔥 حجز اليوم فقط (${todayDayName} ${todayDateStr}):`;
 
-            // فلترة صندوق حجز اليوم (تاريخ 04-09-2026)
+            // فلترة حجز اليوم تلقائياً بناءً على التاريخ الحالي
             const todayBookings = allBookings.filter(b => {
                 if (!b.chalet || b.chalet.trim() !== activeChalet || !b.slots || b.slots.length === 0) return false;
                 
@@ -215,7 +215,7 @@
             const container = document.getElementById('guardBookingsList');
             container.innerHTML = '';
 
-            // فلترة القائمة الشهرية لإخفاء الحجوزات المنتهية وعرض الحالية والمستقبلية فقط
+            // فلترة القائمة الشهرية (عرض الحالية والمستقبلية وحذف المنتهية تلقائياً بناءً على تاريخ اليوم)
             const filtered = allBookings.filter(b => {
                 let chaletMatch = b.chalet && b.chalet.trim() === activeChalet;
                 if (!chaletMatch || !b.slots || b.slots.length === 0) return false;
@@ -235,8 +235,11 @@
                 });
                 let maxSlotDate = Math.max(...slotDates);
 
-                if (currentSelectedYear === 2026 && currentSelectedMonth === 9) {
-                    return maxSlotDate >= todayTimeObj.getTime();
+                // إذا كان الشهر الحالي والسنة الحالية، استبعد الحجوزات التي انتهى وقتها
+                let realNow = new Date();
+                if (currentSelectedYear === realNow.getFullYear() && currentSelectedMonth === (realNow.getMonth() + 1)) {
+                    let currentDayMidnight = new Date(realNow.getFullYear(), realNow.getMonth(), realNow.getDate()).getTime();
+                    return maxSlotDate >= currentDayMidnight;
                 }
 
                 return true;
@@ -351,7 +354,7 @@
                                 ${displayTime ? `<div class="text-[10px] text-sky-400/80">📅 ${displayTime}</div>` : ''}
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="${isCollection ? 'text-purple-400 font-bold' : 'text-red-400 font-bold'} text-sm">${ex.amount} د.أ</span>
+                                <span class="${isCollection ? 'text-purple-400 font-bold' : 'text-red-400 font-bold'} text-sm">${ex.amount} د.أ</b></span>
                                 <button onclick="deleteExpense('${ex.id}')" class="text-red-500 font-black px-2 py-0.5 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white transition">✕</button>
                             </div>
                         </div>
@@ -408,10 +411,10 @@
             let amount = parseFloat(document.getElementById('expenseAmount').value);
             if (!note || isNaN(amount) || amount <= 0) return alert('أدخل بيانات صحيحة للمصروف');
 
-            let now = new Date(2026, 8, 4);
-            let dateStr = "2026-09-04";
+            let now = new Date();
+            let dateStr = now.toISOString().split('T')[0];
             let dayName = daysArabic[now.getDay()];
-            let timeStr = "12:00 م";
+            let timeStr = now.toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' });
 
             await setDoc(doc(db, "expenses", String(Date.now())), { 
                 note, 
@@ -431,10 +434,10 @@
             let amount = parseFloat(document.getElementById('collectAmount').value);
             if (isNaN(amount) || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح للاستلام!');
 
-            let now = new Date(2026, 8, 4);
-            let dateStr = "2026-09-04";
+            let now = new Date();
+            let dateStr = now.toISOString().split('T')[0];
             let dayName = daysArabic[now.getDay()];
-            let timeStr = "12:00 م";
+            let timeStr = now.toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' });
 
             await setDoc(doc(db, "expenses", String(Date.now())), { 
                 note: `قبض كاش من الحارس (عبد الله)`, 
